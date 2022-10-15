@@ -1,0 +1,8 @@
+[workspace]
+
+members = [
+    "dense-core",
+    "sparse-core",
+    "dense-traits",
+    "sparse-traits"
+]
