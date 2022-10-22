@@ -1,76 +1,77 @@
-use sparse_traits::linear_space::CollectionOfVectors;
-use sparse_traits::operator::*;
-use sparse_traits::types::*;
-use std::marker::PhantomData;
+pub use sparse_traits::*;
 
-/// A base operator struct.
-pub struct OperatorWithMatVec<InputType: GeneralScalar, OutputType: GeneralScalar> {
-    _input: std::marker::PhantomData<InputType>,
-    _output: std::marker::PhantomData<OutputType>,
-}
+// We create two structs. One will have a matvec,
+// the other one not.
+struct OpWithMatVec {}
+struct OpWithoutMatVec {}
 
-pub struct OperatorWithoutMatVec<InputType: GeneralScalar, OutputType: GeneralScalar> {
-    _input: std::marker::PhantomData<InputType>,
-    _output: std::marker::PhantomData<OutputType>,
-}
+// Simple helper structs as mock vectors
+struct Vec {}
+impl Vector for Vec {}
 
-impl<InputType: GeneralScalar, OutputType: GeneralScalar>
-    OperatorWithMatVec<InputType, OutputType>
-{
-    pub fn new() -> Self {
-        Self {
-            _input: PhantomData,
-            _output: PhantomData,
-        }
-    }
-
-    pub fn to_box(self) -> Box<dyn OperatorBase<InputType, OutputType>> {
-        Box::new(self)
+// For OpWithMatvec we have to implement
+// `as_matvec` to return a reference to self.
+// This is just boilerplate and could be handled
+// by a simple derive macro or similar so the user
+// needs not write this boilerplate.
+impl OperatorBase for OpWithMatVec {
+    fn as_matvec(&self) -> Result<&dyn AsMatVec, ()> {
+        Ok(self)
     }
 }
 
-impl<InputType: GeneralScalar, OutputType: GeneralScalar>
-    OperatorWithoutMatVec<InputType, OutputType>
-{
-    pub fn new() -> Self {
-        Self {
-            _input: PhantomData,
-            _output: PhantomData,
-        }
-    }
-
-    pub fn to_box(self) -> Box<dyn OperatorBase<InputType, OutputType>> {
-        Box::new(self)
+// The actual matvec is now implemented. It is just
+// a stub that prints a message.
+impl AsMatVec for OpWithMatVec {
+    fn matvec(&self, _x: &dyn Vector, _y: &mut dyn Vector) {
+        println!("I am doing a matvec");
     }
 }
 
-impl<InputType: GeneralScalar, OutputType: GeneralScalar> OperatorBase<InputType, OutputType>
-    for OperatorWithoutMatVec<InputType, OutputType>
-{
-}
-
-impl<InputType: GeneralScalar, OutputType: GeneralScalar> OperatorBase<InputType, OutputType>
-    for OperatorWithMatVec<InputType, OutputType>
-{
-    fn as_matvec(&self) -> Result<&dyn AsMatVec<InputType, OutputType>, ()> {
-        Ok(self as &dyn AsMatVec<InputType, OutputType>)
-    }
-}
-
-impl<InputType: GeneralScalar, OutputType: GeneralScalar> AsMatVec<InputType, OutputType>
-    for OperatorWithMatVec<InputType, OutputType>
-{
-    fn matvec(&self, _other: &CollectionOfVectors<InputType>) -> CollectionOfVectors<OutputType> {
-        println!("I am doing a matvec;");
-        CollectionOfVectors::new()
-    }
-}
+// For the operator without matvec we need no boilerplate
+// It just needs to implement `OperatorBase` as empty trait.
+impl OperatorBase for OpWithoutMatVec {}
 
 fn main() {
-    let op_with_matvec = OperatorWithMatVec::<f64, f64>::new().to_box();
-    let op_without_matvec = OperatorWithoutMatVec::<f64, f64>::new().to_box();
+    // We create two structs. One witho matvec and one without
+    let op_with_matvec = OpWithMatVec {};
+    //let op_matvec_ref = &op_with_matvec as &dyn OperatorBase;
 
-    let vec = CollectionOfVectors::<f64>::new();
-    op_with_matvec.as_ref().as_matvec().unwrap().matvec(&vec);
-    op_without_matvec.as_ref().as_matvec().unwrap().matvec(&vec);
+    let op_without_matvec = OpWithoutMatVec {};
+
+    let x = Vec {};
+    let mut y = Vec {};
+
+    // In the following code the cast to the base trait object is only
+    // done to emphasise that we do not need to operate on the concrete
+    // type. But the vtable of OperatorBase has everything we need.
+
+    // For op_with_matvec it executes the matvec.
+    if let Ok(obj) = (&op_with_matvec as &dyn OperatorBase).as_matvec() {
+        obj.matvec(&x, &mut y);
+    } else {
+        // It never goes into this if branch
+        println!("Cannot find matvec for op_with_matvec.");
+    }
+
+    // For op_without_matvec it does not execute the matvec.
+    if let Ok(obj) = (&op_without_matvec as &dyn OperatorBase).as_matvec() {
+        obj.matvec(&x, &mut y);
+    } else {
+        // It always goes into this branch.
+        println!("Cannot find matvec for op_without_matvec.");
+    }
+
+    // Let's now test the has_matvec routine. Again we cast
+    // to the base trait object just to demonstrate that we only
+    // need the base trait.
+
+    println!(
+        "Does op_with_matvec support matvec? {:#?}",
+        (&op_with_matvec as &dyn OperatorBase).has_matvec()
+    );
+    println!(
+        "Does op_without_matvec support matvec? {:#?}",
+        (&op_without_matvec as &dyn OperatorBase).has_matvec()
+    );
 }

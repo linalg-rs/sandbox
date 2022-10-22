@@ -3,13 +3,9 @@
 pub mod operator;
 pub mod types;
 pub mod linear_space;
+pub mod index_set;
 
-
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn it_works() {
-        let result = 2 + 2;
-        assert_eq!(result, 4);
-    }
-}
+pub use operator::*;
+pub use types::*;
+pub use linear_space::*;
+pub use index_set::*;
