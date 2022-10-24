@@ -27,8 +27,9 @@ impl OperatorBase for OpWithMatVec {
 // The actual matvec is now implemented. It is just
 // a stub that prints a message.
 impl AsMatVec for OpWithMatVec {
-    fn matvec(&self, _x: &dyn Vector, _y: &mut dyn Vector) {
+    fn matvec(&self, _x: &dyn Vector, _y: &mut dyn Vector) -> Result<(), Error> {
         println!("I am doing a matvec");
+        Ok(())
     }
 }
 
@@ -52,7 +53,7 @@ fn main() {
 
     // For op_with_matvec it executes the matvec.
     if let Some(obj) = (&op_with_matvec as &dyn OperatorBase).as_matvec() {
-        obj.matvec(&x, &mut y);
+        obj.matvec(&x, &mut y).unwrap();
     } else {
         // It never goes into this if branch
         println!("Cannot find matvec for op_with_matvec.");
@@ -60,7 +61,7 @@ fn main() {
 
     // For op_without_matvec it does not execute the matvec.
     if let Some(obj) = (&op_without_matvec as &dyn OperatorBase).as_matvec() {
-        obj.matvec(&x, &mut y);
+        obj.matvec(&x, &mut y).unwrap();
     } else {
         // It always goes into this branch.
         println!("Cannot find matvec for op_without_matvec.");
