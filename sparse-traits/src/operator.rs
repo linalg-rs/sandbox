@@ -33,6 +33,10 @@ pub trait OperatorBase: Debug {
     fn has_matvec(&self) -> bool {
         self.as_matvec().is_some()
     }
+
+    // Check if a given vector allows type conversion to the native type
+    // of the operator.
+    //fn is_compatible(&self, vec: &dyn Vector);
 }
 
 /// Matrix vector product $Ax$.

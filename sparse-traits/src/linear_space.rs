@@ -1,7 +1,10 @@
 //! Stubs for linear spaces.
+use crate::{views::VectorTypedView, GeneralScalar};
 
 /// Definition of a linear space
 pub trait LinearSpace {
+
+    fn create_vector(&self) -> Box<&dyn Vector>;
 
 }
 
