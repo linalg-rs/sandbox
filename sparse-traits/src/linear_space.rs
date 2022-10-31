@@ -1,14 +1,13 @@
 //! Stubs for linear spaces.
-use crate::{views::VectorTypedView, GeneralScalar};
+use crate::Scalar;
 
 /// Definition of a linear space
 pub trait LinearSpace {
-
-    fn create_vector(&self) -> Box<&dyn Vector>;
-
+    type Item: Scalar;
+    fn create_vector(&self) -> Box<&dyn Vector<Item=Self::Item>>;
 }
 
 /// A vector is an element of a linear space.
 pub trait Vector {
-
+    type Item: Scalar;
 }

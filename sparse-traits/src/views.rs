@@ -2,7 +2,7 @@
 pub use crate::types::*;
 
 pub trait VectorTypedView<'a> {
-    type Item: GeneralScalar;
+    type Item: Scalar;
 
     // We would like to define the iterator just by a trait.
     // But this requires generic associated types (GATs), which luckily

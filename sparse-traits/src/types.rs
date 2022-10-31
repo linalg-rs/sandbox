@@ -4,7 +4,7 @@ use num::traits::{One, Zero};
 use std::cmp::PartialEq;
 use std::ops::{Add, Mul, Sub};
 
-pub trait GeneralScalar:
+pub trait Scalar:
     Add<Self, Output = Self>
     + Sub<Self, Output = Self>
     + Mul<Self, Output = Self>
@@ -24,7 +24,7 @@ impl<
             + Zero
             + One
             + Sized,
-    > GeneralScalar for T
+    > Scalar for T
 {
 }
 
