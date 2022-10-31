@@ -4,6 +4,7 @@ pub mod operator;
 pub mod types;
 pub mod linear_space;
 pub mod index_set;
+pub mod views;
 
 pub use operator::*;
 pub use types::*;
