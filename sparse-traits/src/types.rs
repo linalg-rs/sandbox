@@ -2,7 +2,7 @@
 
 use num::traits::{One, Zero};
 use std::cmp::PartialEq;
-use std::ops::{Add, Mul, Sub, Div};
+use std::ops::{Add, Div, Mul, Sub};
 
 pub trait Scalar:
     Add<Self, Output = Self>
@@ -30,3 +30,7 @@ impl<
 }
 
 pub type IndexType = usize;
+
+pub trait RealType: num::traits::Float {}
+
+impl<T: num::traits::Float> RealType for T {}

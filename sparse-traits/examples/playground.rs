@@ -8,11 +8,25 @@ struct OpWithMatVec {}
 #[derive(Debug)]
 struct OpWithoutMatVec {}
 
+struct SimpleSpace;
+
+impl LinearSpace for SimpleSpace {
+    type Item = f64;
+    type Real = f64;
+    type VectorType = Vec;
+}
+
+struct View;
+impl VectorView for View {
+    type Item = f64;
+}
+
 // Simple helper structs as mock vectors
 #[derive(Debug)]
 struct Vec {}
 impl Vector for Vec {
-    type Item = f64;
+    type Space = SimpleSpace;
+    type View = View;
 }
 
 // For OpWithMatvec we have to implement
@@ -21,9 +35,9 @@ impl Vector for Vec {
 // by a simple derive macro or similar so the user
 // needs not write this boilerplate.
 impl OperatorBase for OpWithMatVec {
-    type In = f64;
-    type Out = f64;
-    fn as_matvec(&self) -> Option<&dyn AsMatVec<In=Self::In, Out=Self::Out>> {
+    type In = SimpleSpace;
+    type Out = SimpleSpace;
+    fn as_matvec(&self) -> Option<&dyn AsMatVec<In = Self::In, Out = Self::Out>> {
         Some(self)
     }
 }
@@ -31,7 +45,11 @@ impl OperatorBase for OpWithMatVec {
 // The actual matvec is now implemented. It is just
 // a stub that prints a message.
 impl AsMatVec for OpWithMatVec {
-    fn matvec(&self, _x: &dyn Vector<Item=Self::In>, _y: &mut dyn Vector<Item=Self::Out>) -> Result<(), Error> {
+    fn matvec(
+        &self,
+        _x: &<Self::In as LinearSpace>::VectorType,
+        _y: &mut <Self::Out as LinearSpace>::VectorType,
+    ) -> Result<(), Error> {
         println!("I am doing a matvec");
         Ok(())
     }
@@ -40,8 +58,8 @@ impl AsMatVec for OpWithMatVec {
 // For the operator without matvec we need no boilerplate
 // It just needs to implement `OperatorBase` as empty trait.
 impl OperatorBase for OpWithoutMatVec {
-    type In = f64;
-    type Out = f64;
+    type In = SimpleSpace;
+    type Out = SimpleSpace;
 }
 
 fn main() {
@@ -59,7 +77,9 @@ fn main() {
     // type. But the vtable of OperatorBase has everything we need.
 
     // For op_with_matvec it executes the matvec.
-    if let Some(obj) = (&op_with_matvec as &dyn OperatorBase<In=f64, Out=f64>).as_matvec() {
+    if let Some(obj) =
+        (&op_with_matvec as &dyn OperatorBase<In = SimpleSpace, Out = SimpleSpace>).as_matvec()
+    {
         obj.matvec(&x, &mut y).unwrap();
     } else {
         // It never goes into this if branch
@@ -67,7 +87,9 @@ fn main() {
     }
 
     // For op_without_matvec it does not execute the matvec.
-    if let Some(obj) = (&op_without_matvec as &dyn OperatorBase<In=f64, Out=f64>).as_matvec() {
+    if let Some(obj) =
+        (&op_without_matvec as &dyn OperatorBase<In = SimpleSpace, Out = SimpleSpace>).as_matvec()
+    {
         obj.matvec(&x, &mut y).unwrap();
     } else {
         // It always goes into this branch.
@@ -80,10 +102,10 @@ fn main() {
 
     println!(
         "Does op_with_matvec support matvec? {:#?}",
-        (&op_with_matvec as &dyn OperatorBase<In=f64, Out=f64>).has_matvec()
+        (&op_with_matvec as &dyn OperatorBase<In = SimpleSpace, Out = SimpleSpace>).has_matvec()
     );
     println!(
         "Does op_without_matvec support matvec? {:#?}",
-        (&op_without_matvec as &dyn OperatorBase<In=f64, Out=f64>).has_matvec()
+        (&op_without_matvec as &dyn OperatorBase<In = SimpleSpace, Out = SimpleSpace>).has_matvec()
     );
 }
