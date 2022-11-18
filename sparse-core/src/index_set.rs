@@ -49,7 +49,7 @@ impl IndexSet for SerialIndexSet {
 
 impl DistributedIndexSet {
     fn new(range: (IndexType, IndexType), comm: &dyn mpi::traits::Communicator) -> Self {
-        let ranges = Vec::<(IndexType, IndexType)>::new();
+        let ranges = Vec::<Option<(IndexType, IndexType)>>::new();
         let my_rank = comm.rank() as IndexType;
 
         // The following code computes what index is on what rank. No MPI operation necessary.

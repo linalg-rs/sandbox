@@ -11,15 +11,11 @@ struct OpWithoutMatVec {}
 struct SimpleSpace;
 
 impl Space for SimpleSpace {
-    type Item = f64;
-    type Real = f64;
-    type VectorType = Vec;
+    type F = f64;
+    type E = Vec;
 }
 
 struct View;
-impl FiniteVectorView for View {
-    type Item = f64;
-}
 
 // Simple helper structs as mock vectors
 #[derive(Debug)]
@@ -47,9 +43,9 @@ impl OperatorBase for OpWithMatVec {
 impl AsMatVec for OpWithMatVec {
     fn matvec(
         &self,
-        _x: &<Self::Domain as Space>::VectorType,
-        _y: &mut <Self::Range as Space>::VectorType,
-    ) -> Result<(), Error> {
+        _x: &<Self::Domain as Space>::E,
+        _y: &mut <Self::Range as Space>::E,
+    ) -> Result {
         println!("I am doing a matvec");
         Ok(())
     }

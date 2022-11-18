@@ -2,10 +2,10 @@
 
 pub mod index_set;
 pub mod operator;
+pub mod spaces;
 pub mod types;
-pub mod vectors;
 
 pub use index_set::*;
 pub use operator::*;
+pub use spaces::*;
 pub use types::*;
-pub use vectors::*;
