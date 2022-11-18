@@ -1,33 +1,27 @@
 //! General linear operator.
 
-use crate::LinearSpace;
+use crate::Space;
 use std::fmt::Debug;
 
 use crate::*;
 
-#[derive(Debug)]
-pub enum Error {
-    NotImplemented,
-    OperationFailed,
-}
-
-type Result = std::result::Result<(), Error>;
-
 // A base operator trait.
 pub trait OperatorBase: Debug {
-    type In: LinearSpace;
-    type Out: LinearSpace;
+    type Domain: Space;
+    type Range: Space;
 
     /// Returns a reference to trait object that supports matvec.
     ///
     /// By default it returns an `Err`. But for concrete types
     /// that support matvecs it is specialised to return
     /// a dynamic reference.
-    fn as_matvec(&self) -> Option<&dyn AsMatVec<In = Self::In, Out = Self::Out>> {
+    fn as_matvec(&self) -> Option<&dyn AsMatVec<Domain = Self::Domain, Range = Self::Range>> {
         None
     }
 
-    fn as_matvec_h(&self) -> Option<&dyn AsHermitianMatVec<In = Self::In, Out = Self::Out>> {
+    fn as_matvec_h(
+        &self,
+    ) -> Option<&dyn AsHermitianMatVec<Domain = Self::Domain, Range = Self::Range>> {
         None
     }
 
@@ -45,19 +39,15 @@ pub trait OperatorBase: Debug {
 
 /// Matrix vector product $Ax$.
 pub trait AsMatVec: OperatorBase {
-    fn matvec(
-        &self,
-        x: &<Self::In as LinearSpace>::VectorType,
-        y: &mut <Self::Out as LinearSpace>::VectorType,
-    ) -> Result;
+    fn matvec(&self, x: &<Self::Domain as Space>::E, y: &mut <Self::Range as Space>::E) -> Result;
 }
 
 /// Matrix vector product $A^Hx$.
 pub trait AsHermitianMatVec: OperatorBase {
     fn matvec_h(
         &self,
-        x: &<Self::Out as LinearSpace>::VectorType,
-        y: &mut <Self::In as LinearSpace>::VectorType,
+        x: &<Self::Range as Space>::VectorType,
+        y: &mut <Self::Domain as Space>::VectorType,
     ) -> Result;
 }
 
@@ -65,16 +55,16 @@ pub trait AsHermitianMatVec: OperatorBase {
 pub trait AsTransposeMatVec: OperatorBase {
     fn matvec_t(
         &self,
-        x: &<Self::Out as LinearSpace>::VectorType,
-        y: &mut <Self::In as LinearSpace>::VectorType,
+        x: &<Self::Range as Space>::VectorType,
+        y: &mut <Self::Domain as Space>::VectorType,
     ) -> Result;
 }
 
-impl<In: LinearSpace, Out: LinearSpace> AsMatVec for dyn OperatorBase<In = In, Out = Out> {
+impl<In: Space, Out: Space> AsMatVec for dyn OperatorBase<Domain = In, Range = Out> {
     fn matvec(
         &self,
-        x: &<Self::In as LinearSpace>::VectorType,
-        y: &mut <Self::Out as LinearSpace>::VectorType,
+        x: &<Self::Domain as Space>::VectorType,
+        y: &mut <Self::Range as Space>::VectorType,
     ) -> Result {
         if let Some(op) = self.as_matvec() {
             op.matvec(x, y)
@@ -84,11 +74,11 @@ impl<In: LinearSpace, Out: LinearSpace> AsMatVec for dyn OperatorBase<In = In, O
     }
 }
 
-impl<In: LinearSpace, Out: LinearSpace> AsHermitianMatVec for dyn OperatorBase<In = In, Out = Out> {
+impl<In: Space, Out: Space> AsHermitianMatVec for dyn OperatorBase<Domain = In, Range = Out> {
     fn matvec_h(
         &self,
-        x: &<Self::Out as LinearSpace>::VectorType,
-        y: &mut <Self::In as LinearSpace>::VectorType,
+        x: &<Self::Range as Space>::VectorType,
+        y: &mut <Self::Domain as Space>::VectorType,
     ) -> Result {
         if let Some(op) = self.as_matvec_h() {
             op.matvec_h(x, y)
@@ -105,7 +95,7 @@ mod tests {
 
     #[derive(Debug)]
     struct SimpleSpace;
-    impl LinearSpace for SimpleSpace {
+    impl Space for SimpleSpace {
         type Item = f64;
         type VectorType = SimpleVector;
         type Real = f64;
@@ -114,11 +104,11 @@ mod tests {
     #[derive(Debug)]
     struct SimpleVector;
     struct View;
-    impl VectorView for View {
+    impl FiniteVectorView for View {
         type Item = f64;
     }
 
-    impl Vector for SimpleVector {
+    impl Element for SimpleVector {
         type Space = SimpleSpace;
         type View = View;
     }
@@ -126,21 +116,23 @@ mod tests {
     #[derive(Debug)]
     struct SparseMatrix;
     impl OperatorBase for SparseMatrix {
-        type In = SimpleSpace;
-        type Out = SimpleSpace;
+        type Domain = SimpleSpace;
+        type Range = SimpleSpace;
 
-        fn as_matvec(&self) -> Option<&dyn AsMatVec<In = Self::In, Out = Self::Out>> {
+        fn as_matvec(&self) -> Option<&dyn AsMatVec<Domain = Self::Domain, Range = Self::Range>> {
             Some(self)
         }
-        fn as_matvec_h(&self) -> Option<&dyn AsHermitianMatVec<In = Self::In, Out = Self::Out>> {
+        fn as_matvec_h(
+            &self,
+        ) -> Option<&dyn AsHermitianMatVec<Domain = Self::Domain, Range = Self::Range>> {
             Some(self)
         }
     }
     impl AsMatVec for SparseMatrix {
         fn matvec(
             &self,
-            _x: &<Self::In as LinearSpace>::VectorType,
-            _y: &mut <Self::Out as LinearSpace>::VectorType,
+            _x: &<Self::Domain as Space>::VectorType,
+            _y: &mut <Self::Range as Space>::VectorType,
         ) -> Result {
             println!("{self:?} matvec");
             Ok(())
@@ -149,8 +141,8 @@ mod tests {
     impl AsHermitianMatVec for SparseMatrix {
         fn matvec_h(
             &self,
-            _x: &<Self::Out as LinearSpace>::VectorType,
-            _y: &mut <Self::In as LinearSpace>::VectorType,
+            _x: &<Self::Range as Space>::VectorType,
+            _y: &mut <Self::Domain as Space>::VectorType,
         ) -> Result {
             println!("{self:?} matvec_h");
             Ok(())
@@ -166,17 +158,17 @@ mod tests {
     #[derive(Debug)]
     struct FiniteDifference;
     impl OperatorBase for FiniteDifference {
-        type In = SimpleSpace;
-        type Out = SimpleSpace;
-        fn as_matvec(&self) -> Option<&dyn AsMatVec<In = Self::In, Out = Self::Out>> {
+        type Domain = SimpleSpace;
+        type Range = SimpleSpace;
+        fn as_matvec(&self) -> Option<&dyn AsMatVec<Domain = Self::Domain, Range = Self::Range>> {
             Some(self)
         }
     }
     impl AsMatVec for FiniteDifference {
         fn matvec(
             &self,
-            _x: &<Self::In as LinearSpace>::VectorType,
-            _y: &mut <Self::Out as LinearSpace>::VectorType,
+            _x: &<Self::Domain as Space>::VectorType,
+            _y: &mut <Self::Range as Space>::VectorType,
         ) -> Result {
             println!("{self:?} matvec");
             Ok(())
@@ -187,17 +179,17 @@ mod tests {
     #[derive(Debug)]
     struct SketchyMatrix;
     impl OperatorBase for SketchyMatrix {
-        type In = SimpleSpace;
-        type Out = SimpleSpace;
-        fn as_matvec(&self) -> Option<&dyn AsMatVec<In = Self::In, Out = Self::Out>> {
+        type Domain = SimpleSpace;
+        type Range = SimpleSpace;
+        fn as_matvec(&self) -> Option<&dyn AsMatVec<Domain = Self::Domain, Range = Self::Range>> {
             Some(self)
         }
     }
     impl AsMatVec for SketchyMatrix {
         fn matvec(
             &self,
-            _x: &<Self::In as LinearSpace>::VectorType,
-            _y: &mut <Self::Out as LinearSpace>::VectorType,
+            _x: &<Self::Domain as Space>::VectorType,
+            _y: &mut <Self::Range as Space>::VectorType,
         ) -> Result {
             println!("{self:?} matvec");
             Err(Error::OperationFailed)
@@ -207,7 +199,7 @@ mod tests {
     fn test_mult_dyn() -> Result {
         let x = SimpleVector;
         let mut y = SimpleVector;
-        let ops: Vec<Box<dyn OperatorBase<In = SimpleSpace, Out = SimpleSpace>>> =
+        let ops: Vec<Box<dyn OperatorBase<Domain = SimpleSpace, Range = SimpleSpace>>> =
             vec![Box::new(SparseMatrix), Box::new(FiniteDifference)];
         for op in ops {
             op.matvec(&x, &mut y)?;
