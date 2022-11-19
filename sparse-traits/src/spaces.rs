@@ -1,14 +1,14 @@
-//! Stubs for linear spaces.
+//! Linear spaces and their elements.
 
 use crate::IndexSet;
 use crate::{Error, Result};
 use crate::{IndexType, Scalar};
 
-/// Definition of a vector space
+/// Definition of a linear space
 ///
-/// Linear Spaces are factory objects that can allocate memory
-/// to create new vectors.
-pub trait Space {
+/// Linear spaces are basic objects that can create
+/// elements of the space.
+pub trait LinearSpace {
     /// Field Type.
     type F: Scalar;
 
@@ -21,29 +21,27 @@ pub trait Space {
     }
 
     /// Norm of a vector.
-    fn norm(x: &Self::E, res: &mut <Self::F as cauchy::Scalar>::Real) -> Result {
+    fn norm(_x: &Self::E, _res: &mut <Self::F as cauchy::Scalar>::Real) -> Result {
         Err(Error::NotImplemented)
-
-        // Need to fill out more algebra operations...
     }
 }
 
-pub trait DualSpace: Space {
-    type Space: Space<F = Self::F>;
+pub trait DualSpace: LinearSpace {
+    type Space: LinearSpace<F = Self::F>;
 
     fn dual_pairing(
         &self,
         x: &Self::E,
-        other: <Self::Space as Space>::E,
+        other: <Self::Space as LinearSpace>::E,
         res: &mut Self::F,
     ) -> Result;
 }
 
-pub trait InnerProductSpace: Space {
+pub trait InnerProductSpace: LinearSpace {
     fn inner(&self, x: &Self::E, other: &Self::E, res: &mut Self::F) -> Result;
 }
 
-pub trait FiniteVectorSpace: InnerProductSpace {
+pub trait IndexableVectorSpace: InnerProductSpace {
     fn dimension(&self) -> IndexType {
         self.index_set().number_of_global_indices()
     }
@@ -51,10 +49,10 @@ pub trait FiniteVectorSpace: InnerProductSpace {
     fn index_set(&self) -> &dyn IndexSet;
 }
 
-/// A vector is an element of a linear space.
+/// Elements of linear spaces.
 pub trait Element {
     /// Item type of the vector.
-    type Space: Space;
+    type Space: LinearSpace;
     type View;
 
     /// Return the underlying space.
@@ -62,18 +60,19 @@ pub trait Element {
         std::unimplemented!();
     }
 
-    fn view(&self) -> &Self::View {
-        std::unimplemented!();
-    }
+    fn view(&self) -> &Self::View;
 
-    fn view_mut(&mut self) -> &mut Self::View {
-        std::unimplemented!();
-    }
+    fn view_mut(&mut self) -> &mut Self::View;
 }
 
-pub trait FiniteVector: Element {
-    type View: FiniteVectorView;
+/// A finite dimensional indexable type.
+pub trait IndexableVector: Element {
+    type View: IndexableVectorView;
     fn dimension(&self) -> IndexType;
 }
 
-pub trait FiniteVectorView {}
+/// A vector view allows access and iteration for vector data.
+pub trait IndexableVectorView {}
+
+// The view type associated with elements of linear spaces.
+pub type ElementView<Space> = <<Space as LinearSpace>::E as Element>::View;

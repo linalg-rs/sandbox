@@ -1,9 +1,5 @@
 //! Basic types
 
-use num::traits::{One, Zero};
-use std::cmp::PartialEq;
-use std::ops::{Add, Div, Mul, Sub};
-
 // pub trait Scalar:
 //     Add<Self, Output = Self>
 //     + Sub<Self, Output = Self>

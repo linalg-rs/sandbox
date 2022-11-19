@@ -10,19 +10,30 @@ struct OpWithoutMatVec {}
 
 struct SimpleSpace;
 
-impl Space for SimpleSpace {
+impl LinearSpace for SimpleSpace {
     type F = f64;
     type E = Vec;
 }
 
+#[derive(Debug)]
 struct View;
 
 // Simple helper structs as mock vectors
 #[derive(Debug)]
-struct Vec {}
+struct Vec {
+    view: View,
+}
 impl Element for Vec {
     type Space = SimpleSpace;
     type View = View;
+
+    fn view(&self) -> &View {
+        &self.view
+    }
+
+    fn view_mut(&mut self) -> &mut View {
+        &mut self.view
+    }
 }
 
 // For OpWithMatvec we have to implement
@@ -33,19 +44,15 @@ impl Element for Vec {
 impl OperatorBase for OpWithMatVec {
     type Domain = SimpleSpace;
     type Range = SimpleSpace;
-    fn as_matvec(&self) -> Option<&dyn AsMatVec<Domain = Self::Domain, Range = Self::Range>> {
+    fn as_apply(&self) -> Option<&dyn AsApply<Domain = Self::Domain, Range = Self::Range>> {
         Some(self)
     }
 }
 
 // The actual matvec is now implemented. It is just
 // a stub that prints a message.
-impl AsMatVec for OpWithMatVec {
-    fn matvec(
-        &self,
-        _x: &<Self::Domain as Space>::E,
-        _y: &mut <Self::Range as Space>::E,
-    ) -> Result {
+impl AsApply for OpWithMatVec {
+    fn apply(&self, _x: &ElementView<Self::Domain>, _y: &mut ElementView<Self::Range>) -> Result {
         println!("I am doing a matvec");
         Ok(())
     }
@@ -65,19 +72,18 @@ fn main() {
 
     let op_without_matvec = OpWithoutMatVec {};
 
-    let x = Vec {};
-    let mut y = Vec {};
+    let x = Vec { view: View {} };
+    let mut y = Vec { view: View {} };
 
     // In the following code the cast to the base trait object is only
     // done to emphasise that we do not need to operate on the concrete
     // type. But the vtable of OperatorBase has everything we need.
 
     // For op_with_matvec it executes the matvec.
-    if let Some(obj) = (&op_with_matvec
-        as &dyn OperatorBase<Domain = SimpleSpace, Range = SimpleSpace>)
-        .as_matvec()
+    if let Some(obj) =
+        (&op_with_matvec as &dyn OperatorBase<Domain = SimpleSpace, Range = SimpleSpace>).as_apply()
     {
-        obj.matvec(&x, &mut y).unwrap();
+        obj.apply(x.view(), y.view_mut()).unwrap();
     } else {
         // It never goes into this if branch
         println!("Cannot find matvec for op_with_matvec.");
@@ -86,9 +92,9 @@ fn main() {
     // For op_without_matvec it does not execute the matvec.
     if let Some(obj) = (&op_without_matvec
         as &dyn OperatorBase<Domain = SimpleSpace, Range = SimpleSpace>)
-        .as_matvec()
+        .as_apply()
     {
-        obj.matvec(&x, &mut y).unwrap();
+        obj.apply(x.view(), y.view_mut()).unwrap();
     } else {
         // It always goes into this branch.
         println!("Cannot find matvec for op_without_matvec.");
@@ -101,11 +107,11 @@ fn main() {
     println!(
         "Does op_with_matvec support matvec? {:#?}",
         (&op_with_matvec as &dyn OperatorBase<Domain = SimpleSpace, Range = SimpleSpace>)
-            .has_matvec()
+            .has_apply()
     );
     println!(
         "Does op_without_matvec support matvec? {:#?}",
         (&op_without_matvec as &dyn OperatorBase<Domain = SimpleSpace, Range = SimpleSpace>)
-            .has_matvec()
+            .has_apply()
     );
 }
