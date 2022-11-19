@@ -11,22 +11,29 @@ struct OpWithoutMatVec {}
 struct SimpleSpace;
 
 impl LinearSpace for SimpleSpace {
-    type Item = f64;
-    type Real = f64;
-    type VectorType = Vec;
+    type F = f64;
+    type E = Vec;
 }
 
+#[derive(Debug)]
 struct View;
-impl VectorView for View {
-    type Item = f64;
-}
 
 // Simple helper structs as mock vectors
 #[derive(Debug)]
-struct Vec {}
-impl Vector for Vec {
+struct Vec {
+    view: View,
+}
+impl Element for Vec {
     type Space = SimpleSpace;
     type View = View;
+
+    fn view(&self) -> &View {
+        &self.view
+    }
+
+    fn view_mut(&mut self) -> &mut View {
+        &mut self.view
+    }
 }
 
 // For OpWithMatvec we have to implement
@@ -35,21 +42,17 @@ impl Vector for Vec {
 // by a simple derive macro or similar so the user
 // needs not write this boilerplate.
 impl OperatorBase for OpWithMatVec {
-    type In = SimpleSpace;
-    type Out = SimpleSpace;
-    fn as_matvec(&self) -> Option<&dyn AsMatVec<In = Self::In, Out = Self::Out>> {
+    type Domain = SimpleSpace;
+    type Range = SimpleSpace;
+    fn as_apply(&self) -> Option<&dyn AsApply<Domain = Self::Domain, Range = Self::Range>> {
         Some(self)
     }
 }
 
 // The actual matvec is now implemented. It is just
 // a stub that prints a message.
-impl AsMatVec for OpWithMatVec {
-    fn matvec(
-        &self,
-        _x: &<Self::In as LinearSpace>::VectorType,
-        _y: &mut <Self::Out as LinearSpace>::VectorType,
-    ) -> Result<(), Error> {
+impl AsApply for OpWithMatVec {
+    fn apply(&self, _x: &ElementView<Self::Domain>, _y: &mut ElementView<Self::Range>) -> Result {
         println!("I am doing a matvec");
         Ok(())
     }
@@ -58,8 +61,8 @@ impl AsMatVec for OpWithMatVec {
 // For the operator without matvec we need no boilerplate
 // It just needs to implement `OperatorBase` as empty trait.
 impl OperatorBase for OpWithoutMatVec {
-    type In = SimpleSpace;
-    type Out = SimpleSpace;
+    type Domain = SimpleSpace;
+    type Range = SimpleSpace;
 }
 
 fn main() {
@@ -69,8 +72,8 @@ fn main() {
 
     let op_without_matvec = OpWithoutMatVec {};
 
-    let x = Vec {};
-    let mut y = Vec {};
+    let x = Vec { view: View {} };
+    let mut y = Vec { view: View {} };
 
     // In the following code the cast to the base trait object is only
     // done to emphasise that we do not need to operate on the concrete
@@ -78,19 +81,20 @@ fn main() {
 
     // For op_with_matvec it executes the matvec.
     if let Some(obj) =
-        (&op_with_matvec as &dyn OperatorBase<In = SimpleSpace, Out = SimpleSpace>).as_matvec()
+        (&op_with_matvec as &dyn OperatorBase<Domain = SimpleSpace, Range = SimpleSpace>).as_apply()
     {
-        obj.matvec(&x, &mut y).unwrap();
+        obj.apply(x.view(), y.view_mut()).unwrap();
     } else {
         // It never goes into this if branch
         println!("Cannot find matvec for op_with_matvec.");
     }
 
     // For op_without_matvec it does not execute the matvec.
-    if let Some(obj) =
-        (&op_without_matvec as &dyn OperatorBase<In = SimpleSpace, Out = SimpleSpace>).as_matvec()
+    if let Some(obj) = (&op_without_matvec
+        as &dyn OperatorBase<Domain = SimpleSpace, Range = SimpleSpace>)
+        .as_apply()
     {
-        obj.matvec(&x, &mut y).unwrap();
+        obj.apply(x.view(), y.view_mut()).unwrap();
     } else {
         // It always goes into this branch.
         println!("Cannot find matvec for op_without_matvec.");
@@ -102,10 +106,12 @@ fn main() {
 
     println!(
         "Does op_with_matvec support matvec? {:#?}",
-        (&op_with_matvec as &dyn OperatorBase<In = SimpleSpace, Out = SimpleSpace>).has_matvec()
+        (&op_with_matvec as &dyn OperatorBase<Domain = SimpleSpace, Range = SimpleSpace>)
+            .has_apply()
     );
     println!(
         "Does op_without_matvec support matvec? {:#?}",
-        (&op_without_matvec as &dyn OperatorBase<In = SimpleSpace, Out = SimpleSpace>).has_matvec()
+        (&op_without_matvec as &dyn OperatorBase<Domain = SimpleSpace, Range = SimpleSpace>)
+            .has_apply()
     );
 }
