@@ -34,3 +34,24 @@ impl IndexSet for LocalIndexSet {
         }
     }
 }
+
+#[cfg(test)]
+mod test {
+
+    use super::*;
+
+    #[test]
+    fn test_local_index_set() {
+        let index_set = LocalIndexSet::new((3, 14));
+
+        // Test that the range is correct on rank 0
+        assert_eq!(index_set.index_range(0).unwrap(), (3, 14));
+
+        // Test that the number of global indices is correct.
+        assert_eq!(index_set.number_of_global_indices(), 11);
+
+        // Test that the number of local indices is correct.
+
+        assert!(index_set.index_range(1).is_none());
+    }
+}
