@@ -1,5 +1,6 @@
 pub use sparse_traits::*;
 use std::fmt::Debug;
+use std::marker::PhantomData;
 
 // We create two structs. One will have a matvec,
 // the other one not.
@@ -15,24 +16,32 @@ impl LinearSpace for SimpleSpace {
     type E = Vec;
 }
 
-#[derive(Debug)]
-struct View;
+struct View<'a> {
+    marker: PhantomData<&'a ()>,
+}
 
 // Simple helper structs as mock vectors
 #[derive(Debug)]
-struct Vec {
-    view: View,
+struct Vec {}
+
+impl<'a> View<'a> {
+    fn new() -> Self {
+        Self {
+            marker: PhantomData,
+        }
+    }
 }
+
 impl Element for Vec {
     type Space = SimpleSpace;
-    type View = View;
+    type View<'a> = View<'a> where Self: 'a;
 
-    fn view(&self) -> &View {
-        &self.view
+    fn view<'a>(&'a self) -> Self::View<'a> {
+        View::new()
     }
 
-    fn view_mut(&mut self) -> &mut View {
-        &mut self.view
+    fn view_mut<'a>(&'a mut self) -> Self::View<'a> {
+        View::new()
     }
 }
 
@@ -72,8 +81,8 @@ fn main() {
 
     let op_without_matvec = OpWithoutMatVec {};
 
-    let x = Vec { view: View {} };
-    let mut y = Vec { view: View {} };
+    let x = Vec {};
+    let mut y = Vec {};
 
     // In the following code the cast to the base trait object is only
     // done to emphasise that we do not need to operate on the concrete
@@ -83,7 +92,7 @@ fn main() {
     if let Some(obj) =
         (&op_with_matvec as &dyn OperatorBase<Domain = SimpleSpace, Range = SimpleSpace>).as_apply()
     {
-        obj.apply(x.view(), y.view_mut()).unwrap();
+        obj.apply(&x.view(), &mut y.view_mut()).unwrap();
     } else {
         // It never goes into this if branch
         println!("Cannot find matvec for op_with_matvec.");
@@ -94,7 +103,7 @@ fn main() {
         as &dyn OperatorBase<Domain = SimpleSpace, Range = SimpleSpace>)
         .as_apply()
     {
-        obj.apply(x.view(), y.view_mut()).unwrap();
+        obj.apply(&x.view(), &mut y.view_mut()).unwrap();
     } else {
         // It always goes into this branch.
         println!("Cannot find matvec for op_without_matvec.");
