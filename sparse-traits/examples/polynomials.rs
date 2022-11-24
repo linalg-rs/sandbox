@@ -99,7 +99,7 @@ impl OperatorBase for Derivative {
     }
 }
 impl AsApply for Derivative {
-    fn apply(&self, p: &PolynomialView, dp: &mut PolynomialViewMut) -> Result {
+    fn apply(&self, p: PolynomialView, dp: PolynomialViewMut) -> Result {
         for (i, c) in p.monomial_coeffs[1..].iter().enumerate() {
             dp.monomial_coeffs[i] = (1. + i as f64) * c;
         }
@@ -138,7 +138,7 @@ mod tests {
         let mut dp = Polynomial::from_monomial(&[1., 1., 1.]);
         let d_ = Derivative;
         let d = &d_ as &dyn OperatorBase<Domain = PolynomialSpace, Range = PolynomialSpace>;
-        d.apply(&p.view(), &mut dp.view_mut())?;
+        d.apply(p.view(), dp.view_mut())?;
         assert_eq!(dp.monomial_coeffs, vec![2., 6., 0.]);
         Ok(())
     }

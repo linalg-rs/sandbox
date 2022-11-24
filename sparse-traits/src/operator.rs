@@ -39,7 +39,7 @@ pub trait OperatorBase: Debug {
 
 /// Apply an operator.
 pub trait AsApply: OperatorBase {
-    fn apply(&self, x: &ElementView<Self::Domain>, y: &mut ElementViewMut<Self::Range>) -> Result;
+    fn apply(&self, x: ElementView<Self::Domain>, y: ElementViewMut<Self::Range>) -> Result;
 }
 
 // /// Matrix vector product $A^Hx$.
@@ -61,7 +61,7 @@ pub trait AsApply: OperatorBase {
 // }
 
 impl<In: LinearSpace, Out: LinearSpace> AsApply for dyn OperatorBase<Domain = In, Range = Out> {
-    fn apply(&self, x: &ElementView<Self::Domain>, y: &mut ElementViewMut<Self::Range>) -> Result {
+    fn apply(&self, x: ElementView<Self::Domain>, y: ElementViewMut<Self::Range>) -> Result {
         if let Some(op) = self.as_apply() {
             op.apply(x, y)
         } else {
@@ -146,11 +146,7 @@ mod tests {
         // }
     }
     impl AsApply for SparseMatrix {
-        fn apply(
-            &self,
-            _x: &ElementView<Self::Domain>,
-            _y: &mut ElementView<Self::Range>,
-        ) -> Result {
+        fn apply(&self, _x: ElementView<Self::Domain>, _y: ElementViewMut<Self::Range>) -> Result {
             println!("{self:?} matvec");
             Ok(())
         }
@@ -182,11 +178,7 @@ mod tests {
         }
     }
     impl AsApply for FiniteDifference {
-        fn apply(
-            &self,
-            _x: &ElementView<Self::Domain>,
-            _y: &mut ElementView<Self::Range>,
-        ) -> Result {
+        fn apply(&self, _x: ElementView<Self::Domain>, _y: ElementViewMut<Self::Range>) -> Result {
             println!("{self:?} matvec");
             Ok(())
         }
@@ -203,11 +195,7 @@ mod tests {
         }
     }
     impl AsApply for SketchyMatrix {
-        fn apply(
-            &self,
-            _x: &ElementView<Self::Domain>,
-            _y: &mut ElementView<Self::Range>,
-        ) -> Result {
+        fn apply(&self, _x: ElementView<Self::Domain>, _y: ElementViewMut<Self::Range>) -> Result {
             println!("{self:?} matvec");
             Err(Error::OperationFailed)
         }
@@ -219,7 +207,7 @@ mod tests {
         let ops: Vec<Box<dyn OperatorBase<Domain = SimpleSpace, Range = SimpleSpace>>> =
             vec![Box::new(SparseMatrix), Box::new(FiniteDifference)];
         for op in ops {
-            op.apply(&x.view(), &mut y.view_mut())?;
+            op.apply(x.view(), y.view_mut())?;
         }
         Ok(())
     }
@@ -230,7 +218,7 @@ mod tests {
         let mut y = SimpleVector {};
         let a = SparseMatrix;
         // Static dispatch because we're using a struct that implements AsMatVec
-        a.apply(&x.view(), &mut y.view_mut())?;
+        a.apply(x.view(), y.view_mut())?;
         Ok(())
     }
 
@@ -241,6 +229,6 @@ mod tests {
         let mut y = SimpleVector {};
         let a = SketchyMatrix;
         // Static dispatch because we're using a struct that implements AsMatVec
-        a.apply(&x.view(), &mut y.view_mut()).unwrap();
+        a.apply(x.view(), y.view_mut()).unwrap();
     }
 }
