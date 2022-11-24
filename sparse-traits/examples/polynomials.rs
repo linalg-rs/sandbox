@@ -19,11 +19,7 @@ impl Polynomial {
         }
     }
     fn eval(&self, x: f64) -> f64 {
-        let mut result = 0.0;
-        for c in self.monomial_coeffs.iter().rev() {
-            result = result * x + c;
-        }
-        result
+        self.monomial_coeffs.iter().rev().fold(0., |r, c| r * x + c)
     }
 }
 
@@ -60,7 +56,6 @@ impl LinearSpace for PointwiseEvaluatorSpace {
 impl DualSpace for PointwiseEvaluatorSpace {
     type Space = PolynomialSpace;
 
-    // TODO: This method needs access to elements of the dual space
     fn dual_pairing(
         &self,
         x: &Self::E,
