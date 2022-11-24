@@ -56,14 +56,8 @@ impl LinearSpace for PointwiseEvaluatorSpace {
 impl DualSpace for PointwiseEvaluatorSpace {
     type Space = PolynomialSpace;
 
-    fn dual_pairing(
-        &self,
-        x: &Self::E,
-        p: &<Self::Space as LinearSpace>::E,
-        res: &mut Self::F,
-    ) -> Result<()> {
-        *res = x.scale * p.eval(x.x);
-        Ok(())
+    fn dual_pairing(&self, x: &Self::E, p: &<Self::Space as LinearSpace>::E) -> Result<Self::F> {
+        Ok(x.scale * p.eval(x.x))
     }
 }
 
@@ -126,8 +120,7 @@ mod tests {
         let ds = PointwiseEvaluatorSpace;
         let p = Polynomial::from_monomial(&[1., 2., 3.]);
         let n = PointwiseEvaluate::new(2.);
-        let mut r: f64 = 0.;
-        ds.dual_pairing(&n, &p, &mut r)?;
+        let r = ds.dual_pairing(&n, &p)?;
         assert_eq!(r, 17.);
         Ok(())
     }

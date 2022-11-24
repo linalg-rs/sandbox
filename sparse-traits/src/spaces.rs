@@ -29,16 +29,12 @@ pub trait LinearSpace {
 pub trait DualSpace: LinearSpace {
     type Space: LinearSpace<F = Self::F>;
 
-    fn dual_pairing(
-        &self,
-        x: &Self::E,
-        other: &<Self::Space as LinearSpace>::E,
-        res: &mut Self::F,
-    ) -> Result<()>;
+    fn dual_pairing(&self, x: &Self::E, other: &<Self::Space as LinearSpace>::E)
+        -> Result<Self::F>;
 }
 
 pub trait InnerProductSpace: LinearSpace {
-    fn inner(&self, x: &Self::E, other: &Self::E, res: &mut Self::F) -> Result<()>;
+    fn inner(&self, x: &Self::E, other: &Self::E) -> Result<Self::F>;
 }
 
 pub trait IndexableVectorSpace: InnerProductSpace {
