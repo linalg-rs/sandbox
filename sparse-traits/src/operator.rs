@@ -39,7 +39,7 @@ pub trait OperatorBase: Debug {
 
 /// Apply an operator.
 pub trait AsApply: OperatorBase {
-    fn apply(&self, x: &ElementView<Self::Domain>, y: &mut ElementView<Self::Range>) -> Result;
+    fn apply(&self, x: &ElementView<Self::Domain>, y: &mut ElementViewMut<Self::Range>) -> Result;
 }
 
 // /// Matrix vector product $A^Hx$.
@@ -61,7 +61,7 @@ pub trait AsApply: OperatorBase {
 // }
 
 impl<In: LinearSpace, Out: LinearSpace> AsApply for dyn OperatorBase<Domain = In, Range = Out> {
-    fn apply(&self, x: &ElementView<Self::Domain>, y: &mut ElementView<Self::Range>) -> Result {
+    fn apply(&self, x: &ElementView<Self::Domain>, y: &mut ElementViewMut<Self::Range>) -> Result {
         if let Some(op) = self.as_apply() {
             op.apply(x, y)
         } else {
@@ -119,6 +119,7 @@ mod tests {
     impl Element for SimpleVector {
         type Space = SimpleSpace;
         type View<'a> = View<'a> where Self: 'a;
+        type ViewMut<'a> = View<'a> where Self: 'a;
 
         fn view<'a>(&'a self) -> Self::View<'a> {
             View::new()

@@ -56,6 +56,9 @@ pub trait Element {
     type View<'a>
     where
         Self: 'a;
+    type ViewMut<'a>
+    where
+        Self: 'a;
 
     /// Return the underlying space.
     fn space(&self) -> &Self::Space {
@@ -64,7 +67,7 @@ pub trait Element {
 
     fn view<'a>(&'a self) -> Self::View<'a>;
 
-    fn view_mut<'a>(&'a mut self) -> Self::View<'a>;
+    fn view_mut<'a>(&'a mut self) -> Self::ViewMut<'a>;
 }
 
 /// A finite dimensional indexable type.
@@ -78,3 +81,4 @@ pub trait IndexableVectorView {}
 
 // The view type associated with elements of linear spaces.
 pub type ElementView<'a, Space> = <<Space as LinearSpace>::E as Element>::View<'a>;
+pub type ElementViewMut<'a, Space> = <<Space as LinearSpace>::E as Element>::ViewMut<'a>;
