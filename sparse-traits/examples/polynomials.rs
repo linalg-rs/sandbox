@@ -61,7 +61,7 @@ impl DualSpace for PointwiseEvaluatorSpace {
         x: &Self::E,
         p: &<Self::Space as LinearSpace>::E,
         res: &mut Self::F,
-    ) -> Result {
+    ) -> Result<()> {
         *res = x.scale * p.eval(x.x);
         Ok(())
     }
@@ -99,7 +99,7 @@ impl OperatorBase for Derivative {
     }
 }
 impl AsApply for Derivative {
-    fn apply(&self, p: PolynomialView, dp: PolynomialViewMut) -> Result {
+    fn apply(&self, p: PolynomialView, dp: PolynomialViewMut) -> Result<()> {
         for (i, c) in p.monomial_coeffs[1..].iter().enumerate() {
             dp.monomial_coeffs[i] = (1. + i as f64) * c;
         }
@@ -122,7 +122,7 @@ mod tests {
     }
 
     #[test]
-    fn test_dual() -> Result {
+    fn test_dual() -> Result<()> {
         let ds = PointwiseEvaluatorSpace;
         let p = Polynomial::from_monomial(&[1., 2., 3.]);
         let n = PointwiseEvaluate::new(2.);
@@ -133,7 +133,7 @@ mod tests {
     }
 
     #[test]
-    fn test_derivative() -> Result {
+    fn test_derivative() -> Result<()> {
         let p = Polynomial::from_monomial(&[1., 2., 3.]);
         let mut dp = Polynomial::from_monomial(&[1., 1., 1.]);
         let d_ = Derivative;

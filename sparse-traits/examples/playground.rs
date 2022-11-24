@@ -35,6 +35,7 @@ impl<'a> View<'a> {
 impl Element for Vec {
     type Space = SimpleSpace;
     type View<'a> = View<'a> where Self: 'a;
+    type ViewMut<'a> = View<'a> where Self: 'a;
 
     fn view<'a>(&'a self) -> Self::View<'a> {
         View::new()
@@ -61,7 +62,7 @@ impl OperatorBase for OpWithMatVec {
 // The actual matvec is now implemented. It is just
 // a stub that prints a message.
 impl AsApply for OpWithMatVec {
-    fn apply(&self, _x: &ElementView<Self::Domain>, _y: &mut ElementView<Self::Range>) -> Result {
+    fn apply(&self, _x: ElementView<Self::Domain>, _y: ElementViewMut<Self::Range>) -> Result<()> {
         println!("I am doing a matvec");
         Ok(())
     }
@@ -92,7 +93,7 @@ fn main() {
     if let Some(obj) =
         (&op_with_matvec as &dyn OperatorBase<Domain = SimpleSpace, Range = SimpleSpace>).as_apply()
     {
-        obj.apply(&x.view(), &mut y.view_mut()).unwrap();
+        obj.apply(x.view(), y.view_mut()).unwrap();
     } else {
         // It never goes into this if branch
         println!("Cannot find matvec for op_with_matvec.");
@@ -103,7 +104,7 @@ fn main() {
         as &dyn OperatorBase<Domain = SimpleSpace, Range = SimpleSpace>)
         .as_apply()
     {
-        obj.apply(&x.view(), &mut y.view_mut()).unwrap();
+        obj.apply(x.view(), y.view_mut()).unwrap();
     } else {
         // It always goes into this branch.
         println!("Cannot find matvec for op_without_matvec.");

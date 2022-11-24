@@ -39,7 +39,7 @@ pub trait OperatorBase: Debug {
 
 /// Apply an operator.
 pub trait AsApply: OperatorBase {
-    fn apply(&self, x: ElementView<Self::Domain>, y: ElementViewMut<Self::Range>) -> Result;
+    fn apply(&self, x: ElementView<Self::Domain>, y: ElementViewMut<Self::Range>) -> Result<()>;
 }
 
 // /// Matrix vector product $A^Hx$.
@@ -48,7 +48,7 @@ pub trait AsApply: OperatorBase {
 //         &self,
 //         x: &<<<Self as OperatorBase>::Range as spaces::LinearSpace>::E as Element>::View,
 //         y: &mut <Self::Domain as LinearSpace>::E,
-//     ) -> Result;
+//     ) -> Result<()>;
 // }
 
 // /// Matrix vector product $A^Tx$.
@@ -57,11 +57,11 @@ pub trait AsApply: OperatorBase {
 //         &self,
 //         x: &<Self::Range as LinearSpace>::E,
 //         y: &mut <Self::Domain as LinearSpace>::E,
-//     ) -> Result;
+//     ) -> Result<()>;
 // }
 
 impl<In: LinearSpace, Out: LinearSpace> AsApply for dyn OperatorBase<Domain = In, Range = Out> {
-    fn apply(&self, x: ElementView<Self::Domain>, y: ElementViewMut<Self::Range>) -> Result {
+    fn apply(&self, x: ElementView<Self::Domain>, y: ElementViewMut<Self::Range>) -> Result<()> {
         if let Some(op) = self.as_apply() {
             op.apply(x, y)
         } else {
@@ -77,7 +77,7 @@ impl<In: LinearSpace, Out: LinearSpace> AsApply for dyn OperatorBase<Domain = In
 //         &self,
 //         x: &<Self::Range as LinearSpace>::E,
 //         y: &mut <Self::Domain as LinearSpace>::E,
-//     ) -> Result {
+//     ) -> Result<()> {
 //         if let Some(op) = self.as_matvec_h() {
 //             op.matvec_h(x, y)
 //         } else {
@@ -146,7 +146,11 @@ mod tests {
         // }
     }
     impl AsApply for SparseMatrix {
-        fn apply(&self, _x: ElementView<Self::Domain>, _y: ElementViewMut<Self::Range>) -> Result {
+        fn apply(
+            &self,
+            _x: ElementView<Self::Domain>,
+            _y: ElementViewMut<Self::Range>,
+        ) -> Result<()> {
             println!("{self:?} matvec");
             Ok(())
         }
@@ -156,7 +160,7 @@ mod tests {
     //         &self,
     //         _x: &<Self::Range as LinearSpace>::E,
     //         _y: &mut <Self::Domain as LinearSpace>::E,
-    //     ) -> Result {
+    //     ) -> Result<()> {
     //         println!("{self:?} matvec_h");
     //         Ok(())
     //     }
@@ -178,7 +182,11 @@ mod tests {
         }
     }
     impl AsApply for FiniteDifference {
-        fn apply(&self, _x: ElementView<Self::Domain>, _y: ElementViewMut<Self::Range>) -> Result {
+        fn apply(
+            &self,
+            _x: ElementView<Self::Domain>,
+            _y: ElementViewMut<Self::Range>,
+        ) -> Result<()> {
             println!("{self:?} matvec");
             Ok(())
         }
@@ -195,13 +203,17 @@ mod tests {
         }
     }
     impl AsApply for SketchyMatrix {
-        fn apply(&self, _x: ElementView<Self::Domain>, _y: ElementViewMut<Self::Range>) -> Result {
+        fn apply(
+            &self,
+            _x: ElementView<Self::Domain>,
+            _y: ElementViewMut<Self::Range>,
+        ) -> Result<()> {
             println!("{self:?} matvec");
             Err(Error::OperationFailed)
         }
     }
     #[test]
-    fn test_mult_dyn() -> Result {
+    fn test_mult_dyn() -> Result<()> {
         let x = SimpleVector {};
         let mut y = SimpleVector {};
         let ops: Vec<Box<dyn OperatorBase<Domain = SimpleSpace, Range = SimpleSpace>>> =
@@ -213,7 +225,7 @@ mod tests {
     }
 
     #[test]
-    fn test_mult() -> Result {
+    fn test_mult() -> Result<()> {
         let x = SimpleVector {};
         let mut y = SimpleVector {};
         let a = SparseMatrix;

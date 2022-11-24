@@ -21,7 +21,7 @@ pub trait LinearSpace {
     }
 
     /// Norm of a vector.
-    fn norm(_x: &Self::E, _res: &mut <Self::F as cauchy::Scalar>::Real) -> Result {
+    fn norm(_x: &Self::E, _res: &mut <Self::F as cauchy::Scalar>::Real) -> Result<()> {
         Err(Error::NotImplemented)
     }
 }
@@ -34,11 +34,11 @@ pub trait DualSpace: LinearSpace {
         x: &Self::E,
         other: &<Self::Space as LinearSpace>::E,
         res: &mut Self::F,
-    ) -> Result;
+    ) -> Result<()>;
 }
 
 pub trait InnerProductSpace: LinearSpace {
-    fn inner(&self, x: &Self::E, other: &Self::E, res: &mut Self::F) -> Result;
+    fn inner(&self, x: &Self::E, other: &Self::E, res: &mut Self::F) -> Result<()>;
 }
 
 pub trait IndexableVectorSpace: InnerProductSpace {

@@ -40,4 +40,4 @@ pub enum Error {
     OperationFailed,
 }
 
-pub type Result = std::result::Result<(), Error>;
+pub type Result<T> = std::result::Result<T, Error>;
