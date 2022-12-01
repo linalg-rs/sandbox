@@ -1,8 +1,6 @@
+pub mod distributed;
+pub mod finite_vector;
+pub mod local;
+
 #[cfg(test)]
-mod tests {
-    #[test]
-    fn it_works() {
-        let result = 2 + 2;
-        assert_eq!(result, 4);
-    }
-}
+mod tests {}
