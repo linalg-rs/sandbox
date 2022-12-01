@@ -1,5 +1,6 @@
 pub use sparse_traits::*;
 use std::fmt::Debug;
+use std::marker::PhantomData;
 
 // We create two structs. One will have a matvec,
 // the other one not.
@@ -15,24 +16,32 @@ impl LinearSpace for SimpleSpace {
     type E = Vec;
 }
 
-#[derive(Debug)]
-struct View;
+struct View<'a> {
+    marker: PhantomData<&'a ()>,
+}
 
 // Simple helper structs as mock vectors
 #[derive(Debug)]
-struct Vec {
-    view: View,
+struct Vec {}
+
+impl<'a> View<'a> {
+    fn new() -> Self {
+        Self {
+            marker: PhantomData,
+        }
+    }
 }
+
 impl Element for Vec {
     type Space = SimpleSpace;
-    type View = View;
+    type View<'a> = View<'a> where Self: 'a;
 
-    fn view(&self) -> &View {
-        &self.view
+    fn view<'a>(&'a self) -> Self::View<'a> {
+        View::new()
     }
 
-    fn view_mut(&mut self) -> &mut View {
-        &mut self.view
+    fn view_mut<'a>(&'a mut self) -> Self::View<'a> {
+        View::new()
     }
 }
 
@@ -52,7 +61,7 @@ impl OperatorBase for OpWithMatVec {
 // The actual matvec is now implemented. It is just
 // a stub that prints a message.
 impl AsApply for OpWithMatVec {
-    fn apply(&self, _x: &ElementView<Self::Domain>, _y: &mut ElementView<Self::Range>) -> Result {
+    fn apply(&self, _x: ElementView<Self::Domain>, _y: ElementViewMut<Self::Range>) -> Result<()> {
         println!("I am doing a matvec");
         Ok(())
     }

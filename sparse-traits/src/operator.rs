@@ -39,7 +39,7 @@ pub trait OperatorBase: Debug {
 
 /// Apply an operator.
 pub trait AsApply: OperatorBase {
-    fn apply(&self, x: &ElementView<Self::Domain>, y: &mut ElementView<Self::Range>) -> Result;
+    fn apply(&self, x: ElementView<Self::Domain>, y: ElementViewMut<Self::Range>) -> Result<()>;
 }
 
 // /// Matrix vector product $A^Hx$.
@@ -48,7 +48,11 @@ pub trait AsApply: OperatorBase {
 //         &self,
 //         x: &<<<Self as OperatorBase>::Range as spaces::LinearSpace>::E as Element>::View,
 //         y: &mut <Self::Domain as LinearSpace>::E,
+<<<<<<< HEAD
 //     ) -> Result;
+=======
+//     ) -> Result<()>;
+>>>>>>> main
 // }
 
 // /// Matrix vector product $A^Tx$.
@@ -57,11 +61,19 @@ pub trait AsApply: OperatorBase {
 //         &self,
 //         x: &<Self::Range as LinearSpace>::E,
 //         y: &mut <Self::Domain as LinearSpace>::E,
+<<<<<<< HEAD
 //     ) -> Result;
 // }
 
 impl<In: LinearSpace, Out: LinearSpace> AsApply for dyn OperatorBase<Domain = In, Range = Out> {
     fn apply(&self, x: &ElementView<Self::Domain>, y: &mut ElementView<Self::Range>) -> Result {
+=======
+//     ) -> Result<()>;
+// }
+
+impl<In: LinearSpace, Out: LinearSpace> AsApply for dyn OperatorBase<Domain = In, Range = Out> {
+    fn apply(&self, x: ElementView<Self::Domain>, y: ElementViewMut<Self::Range>) -> Result<()> {
+>>>>>>> main
         if let Some(op) = self.as_apply() {
             op.apply(x, y)
         } else {
@@ -77,7 +89,11 @@ impl<In: LinearSpace, Out: LinearSpace> AsApply for dyn OperatorBase<Domain = In
 //         &self,
 //         x: &<Self::Range as LinearSpace>::E,
 //         y: &mut <Self::Domain as LinearSpace>::E,
+<<<<<<< HEAD
 //     ) -> Result {
+=======
+//     ) -> Result<()> {
+>>>>>>> main
 //         if let Some(op) = self.as_matvec_h() {
 //             op.matvec_h(x, y)
 //         } else {
@@ -89,6 +105,11 @@ impl<In: LinearSpace, Out: LinearSpace> AsApply for dyn OperatorBase<Domain = In
 #[cfg(test)]
 mod tests {
 
+<<<<<<< HEAD
+=======
+    use std::marker::PhantomData;
+
+>>>>>>> main
     use super::*;
 
     #[derive(Debug)]
@@ -99,6 +120,7 @@ mod tests {
     }
 
     #[derive(Debug)]
+<<<<<<< HEAD
     struct SimpleVector {
         view: View,
     }
@@ -116,6 +138,34 @@ mod tests {
 
         fn view_mut(&mut self) -> &mut Self::View {
             &mut self.view
+=======
+    struct SimpleVector {}
+
+    #[derive(Debug)]
+    struct View<'a> {
+        marker: PhantomData<&'a ()>,
+    }
+
+    impl<'a> View<'a> {
+        fn new() -> Self {
+            Self {
+                marker: PhantomData,
+            }
+        }
+    }
+
+    impl Element for SimpleVector {
+        type Space = SimpleSpace;
+        type View<'a> = View<'a> where Self: 'a;
+        type ViewMut<'a> = View<'a> where Self: 'a;
+
+        fn view<'a>(&'a self) -> Self::View<'a> {
+            View::new()
+        }
+
+        fn view_mut<'a>(&'a mut self) -> Self::View<'a> {
+            View::new()
+>>>>>>> main
         }
     }
 
@@ -137,9 +187,15 @@ mod tests {
     impl AsApply for SparseMatrix {
         fn apply(
             &self,
+<<<<<<< HEAD
             _x: &ElementView<Self::Domain>,
             _y: &mut ElementView<Self::Range>,
         ) -> Result {
+=======
+            _x: ElementView<Self::Domain>,
+            _y: ElementViewMut<Self::Range>,
+        ) -> Result<()> {
+>>>>>>> main
             println!("{self:?} matvec");
             Ok(())
         }
@@ -149,7 +205,11 @@ mod tests {
     //         &self,
     //         _x: &<Self::Range as LinearSpace>::E,
     //         _y: &mut <Self::Domain as LinearSpace>::E,
+<<<<<<< HEAD
     //     ) -> Result {
+=======
+    //     ) -> Result<()> {
+>>>>>>> main
     //         println!("{self:?} matvec_h");
     //         Ok(())
     //     }
@@ -173,9 +233,15 @@ mod tests {
     impl AsApply for FiniteDifference {
         fn apply(
             &self,
+<<<<<<< HEAD
             _x: &ElementView<Self::Domain>,
             _y: &mut ElementView<Self::Range>,
         ) -> Result {
+=======
+            _x: ElementView<Self::Domain>,
+            _y: ElementViewMut<Self::Range>,
+        ) -> Result<()> {
+>>>>>>> main
             println!("{self:?} matvec");
             Ok(())
         }
@@ -194,17 +260,29 @@ mod tests {
     impl AsApply for SketchyMatrix {
         fn apply(
             &self,
+<<<<<<< HEAD
             _x: &ElementView<Self::Domain>,
             _y: &mut ElementView<Self::Range>,
         ) -> Result {
+=======
+            _x: ElementView<Self::Domain>,
+            _y: ElementViewMut<Self::Range>,
+        ) -> Result<()> {
+>>>>>>> main
             println!("{self:?} matvec");
             Err(Error::OperationFailed)
         }
     }
     #[test]
+<<<<<<< HEAD
     fn test_mult_dyn() -> Result {
         let x = SimpleVector { view: View {} };
         let mut y = SimpleVector { view: View {} };
+=======
+    fn test_mult_dyn() -> Result<()> {
+        let x = SimpleVector {};
+        let mut y = SimpleVector {};
+>>>>>>> main
         let ops: Vec<Box<dyn OperatorBase<Domain = SimpleSpace, Range = SimpleSpace>>> =
             vec![Box::new(SparseMatrix), Box::new(FiniteDifference)];
         for op in ops {
@@ -214,9 +292,15 @@ mod tests {
     }
 
     #[test]
+<<<<<<< HEAD
     fn test_mult() -> Result {
         let x = SimpleVector { view: View {} };
         let mut y = SimpleVector { view: View {} };
+=======
+    fn test_mult() -> Result<()> {
+        let x = SimpleVector {};
+        let mut y = SimpleVector {};
+>>>>>>> main
         let a = SparseMatrix;
         // Static dispatch because we're using a struct that implements AsMatVec
         a.apply(x.view(), y.view_mut())?;
@@ -226,8 +310,13 @@ mod tests {
     #[test]
     #[should_panic]
     fn test_mult_sketchy() {
+<<<<<<< HEAD
         let x = SimpleVector { view: View {} };
         let mut y = SimpleVector { view: View {} };
+=======
+        let x = SimpleVector {};
+        let mut y = SimpleVector {};
+>>>>>>> main
         let a = SketchyMatrix;
         // Static dispatch because we're using a struct that implements AsMatVec
         a.apply(x.view(), y.view_mut()).unwrap();
