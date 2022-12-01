@@ -35,6 +35,7 @@ impl<'a> View<'a> {
 impl Element for Vec {
     type Space = SimpleSpace;
     type View<'a> = View<'a> where Self: 'a;
+    type ViewMut<'a> = View<'a> where Self: 'a;
 
     fn view<'a>(&'a self) -> Self::View<'a> {
         View::new()
@@ -81,8 +82,8 @@ fn main() {
 
     let op_without_matvec = OpWithoutMatVec {};
 
-    let x = Vec { view: View {} };
-    let mut y = Vec { view: View {} };
+    let x = Vec {};
+    let mut y = Vec {};
 
     // In the following code the cast to the base trait object is only
     // done to emphasise that we do not need to operate on the concrete
