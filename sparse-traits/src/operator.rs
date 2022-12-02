@@ -19,46 +19,15 @@ pub trait OperatorBase: Debug {
         None
     }
 
-    // fn as_matvec_h(
-    //     &self,
-    // ) -> Option<&dyn AsHermitianMatVec<Domain = Self::Domain, Range = Self::Range>> {
-    //     None
-    // }
-
-    // The following convenience routine returns true if an operator
-    // supports `apply`. Applied to trait objects it provides a runtime
-    // check about supported traits.
     fn has_apply(&self) -> bool {
         self.as_apply().is_some()
     }
-
-    // Check if a given vector allows type conversion to the native type
-    // of the operator.
-    //fn is_compatible(&self, vec: &dyn Vector);
 }
 
 /// Apply an operator.
 pub trait AsApply: OperatorBase {
     fn apply(&self, x: ElementView<Self::Domain>, y: ElementViewMut<Self::Range>) -> Result<()>;
 }
-
-// /// Matrix vector product $A^Hx$.
-// pub trait AsHermitianMatVec: OperatorBase {
-//     fn matvec_h(
-//         &self,
-//         x: &<<<Self as OperatorBase>::Range as spaces::LinearSpace>::E as Element>::View,
-//         y: &mut <Self::Domain as LinearSpace>::E,
-//     ) -> Result<()>;
-// }
-
-// /// Matrix vector product $A^Tx$.
-// pub trait AsTransposeMatVec: OperatorBase {
-//     fn matvec_t(
-//         &self,
-//         x: &<Self::Range as LinearSpace>::E,
-//         y: &mut <Self::Domain as LinearSpace>::E,
-//     ) -> Result<()>;
-// }
 
 impl<In: LinearSpace, Out: LinearSpace> AsApply for dyn OperatorBase<Domain = In, Range = Out> {
     fn apply(&self, x: ElementView<Self::Domain>, y: ElementViewMut<Self::Range>) -> Result<()> {
@@ -69,22 +38,6 @@ impl<In: LinearSpace, Out: LinearSpace> AsApply for dyn OperatorBase<Domain = In
         }
     }
 }
-
-// impl<In: LinearSpace, Out: LinearSpace> AsHermitianMatVec
-//     for dyn OperatorBase<Domain = In, Range = Out>
-// {
-//     fn matvec_h(
-//         &self,
-//         x: &<Self::Range as LinearSpace>::E,
-//         y: &mut <Self::Domain as LinearSpace>::E,
-//     ) -> Result<()> {
-//         if let Some(op) = self.as_matvec_h() {
-//             op.matvec_h(x, y)
-//         } else {
-//             Err(Error::NotImplemented)
-//         }
-//     }
-// }
 
 #[cfg(test)]
 mod tests {
@@ -155,16 +108,6 @@ mod tests {
             Ok(())
         }
     }
-    // impl AsHermitianMatVec for SparseMatrix {
-    //     fn matvec_h(
-    //         &self,
-    //         _x: &<Self::Range as LinearSpace>::E,
-    //         _y: &mut <Self::Domain as LinearSpace>::E,
-    //     ) -> Result<()> {
-    //         println!("{self:?} matvec_h");
-    //         Ok(())
-    //     }
-    // }
 
     // Finite difference matrices use the following formula where f is a
     // nonlinear function and x is a vector that we linearize around. It is not
