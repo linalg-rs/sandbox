@@ -1,33 +1,36 @@
 pub use sparse_traits::*;
 use std::fmt::Debug;
 
-struct PolynomialSpace;
+pub struct PolynomialSpace;
 impl LinearSpace for PolynomialSpace {
     type F = f64;
     type E = Polynomial;
 }
 
 #[derive(Debug)]
-struct Polynomial {
+pub struct Polynomial {
     monomial_coeffs: Vec<f64>,
 }
 
 impl Polynomial {
-    fn from_monomial(monomial_coeffs: &[f64]) -> Self {
+    pub fn from_monomial(monomial_coeffs: &[f64]) -> Self {
         Polynomial {
             monomial_coeffs: monomial_coeffs.to_owned(),
         }
     }
+}
+
+#[derive(Debug)]
+pub struct PolynomialView<'a> {
+    monomial_coeffs: &'a [f64],
+}
+
+impl<'a> PolynomialView<'a> {
     fn eval(&self, x: f64) -> f64 {
         self.monomial_coeffs.iter().rev().fold(0., |r, c| r * x + c)
     }
 }
-
-#[derive(Debug)]
-struct PolynomialView<'a> {
-    monomial_coeffs: &'a [f64],
-}
-struct PolynomialViewMut<'a> {
+pub struct PolynomialViewMut<'a> {
     monomial_coeffs: &'a mut [f64],
 }
 
@@ -48,7 +51,7 @@ impl Element for Polynomial {
     }
 }
 
-struct PointwiseEvaluatorSpace;
+pub struct PointwiseEvaluatorSpace;
 impl LinearSpace for PointwiseEvaluatorSpace {
     type F = f64;
     type E = PointwiseEvaluate;
@@ -56,17 +59,17 @@ impl LinearSpace for PointwiseEvaluatorSpace {
 impl DualSpace for PointwiseEvaluatorSpace {
     type Space = PolynomialSpace;
 
-    fn dual_pairing(&self, x: &Self::E, p: &<Self::Space as LinearSpace>::E) -> Result<Self::F> {
+    fn dual_pairing(&self, x: ElementView<Self>, p: ElementView<Self::Space>) -> Result<Self::F> {
         Ok(x.scale * p.eval(x.x))
     }
 }
 
-struct PointwiseEvaluate {
+pub struct PointwiseEvaluate {
     x: f64,
     scale: f64,
 }
 impl PointwiseEvaluate {
-    fn new(x: f64) -> Self {
+    pub fn new(x: f64) -> Self {
         PointwiseEvaluate { x, scale: 1. }
     }
 }
@@ -102,6 +105,8 @@ impl AsApply for Derivative {
     }
 }
 
+fn main() {}
+
 #[cfg(test)]
 mod tests {
     use crate::{
@@ -112,7 +117,7 @@ mod tests {
     #[test]
     fn test_poly_eval() {
         let p = Polynomial::from_monomial(&[1., 2., 3.]);
-        assert_eq!(p.eval(2.), 17.);
+        assert_eq!(p.view().eval(2.), 17.);
     }
 
     #[test]
@@ -120,7 +125,7 @@ mod tests {
         let ds = PointwiseEvaluatorSpace;
         let p = Polynomial::from_monomial(&[1., 2., 3.]);
         let n = PointwiseEvaluate::new(2.);
-        let r = ds.dual_pairing(&n, &p)?;
+        let r = ds.dual_pairing(n.view(), p.view())?;
         assert_eq!(r, 17.);
         Ok(())
     }
