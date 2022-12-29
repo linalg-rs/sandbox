@@ -13,15 +13,15 @@ pub trait LinearSpace {
     type F: Scalar;
 
     /// Type associated with elements of the space.
-    type E: Element<Space = Self>;
+    type E<'a>: Element<Space = Self>;
 
     /// Create a new vector from the space.
-    fn create_element(&self) -> Self::E {
+    fn create_element<'a>(&'a self) -> Self::E<'a> {
         std::unimplemented!();
     }
 
     /// Norm of a vector.
-    fn norm(_x: ElementView<Self>, _res: &mut <Self::F as Scalar>::Real) -> Result<()> {
+    fn norm<'a>(_x: ElementView<'a, 'a, Self>, _res: &mut <Self::F as Scalar>::Real) -> Result<()> {
         Err(Error::NotImplemented)
     }
 }
