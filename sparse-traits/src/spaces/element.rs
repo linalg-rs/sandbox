@@ -1,7 +1,7 @@
 use super::LinearSpace;
 
 /// Elements of linear spaces.
-pub trait Element<'a> {
+pub trait Element {
     /// Item type of the vector.
     type Space: LinearSpace;
     type View<'b>
@@ -12,7 +12,7 @@ pub trait Element<'a> {
         Self: 'b;
 
     /// Return the underlying space.
-    fn space(&self) -> &'a Self::Space {
+    fn space(&self) -> &Self::Space {
         std::unimplemented!();
     }
 
@@ -22,8 +22,7 @@ pub trait Element<'a> {
 }
 
 // The view type associated with elements of linear spaces.
-pub type ElementView<'a, 'b, Space> = <<Space as LinearSpace>::E<'a> as Element<'a>>::View<'b>;
+pub type ElementView<'a, 'b, Space> = <<Space as LinearSpace>::E<'a> as Element>::View<'b>;
 
 // The mutable view type associated with elements of linear spaces.
-pub type ElementViewMut<'a, 'b, Space> =
-    <<Space as LinearSpace>::E<'a> as Element<'a>>::ViewMut<'b>;
+pub type ElementViewMut<'a, 'b, Space> = <<Space as LinearSpace>::E<'a> as Element>::ViewMut<'b>;

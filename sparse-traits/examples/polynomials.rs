@@ -34,7 +34,7 @@ pub struct PolynomialViewMut<'a> {
     monomial_coeffs: &'a mut [f64],
 }
 
-impl<'a> Element<'a> for Polynomial {
+impl Element for Polynomial {
     type Space = PolynomialSpace;
     type View<'b> = PolynomialView<'b> where Self: 'b ;
     type ViewMut<'b> = PolynomialViewMut<'b> where Self: 'b;
@@ -74,14 +74,14 @@ impl PointwiseEvaluate {
     }
 }
 
-impl<'a> Element<'a> for PointwiseEvaluate {
+impl Element for PointwiseEvaluate {
     type Space = PointwiseEvaluatorSpace;
-    type View<'b> = &'b PointwiseEvaluate where Self: 'b;
-    type ViewMut<'b> = &'b mut PointwiseEvaluate where Self: 'b;
-    fn view<'b>(&'b self) -> Self::View<'b> {
+    type View<'a> = &'a PointwiseEvaluate where Self: 'a;
+    type ViewMut<'a> = &'a mut PointwiseEvaluate where Self: 'a;
+    fn view<'a>(&'a self) -> Self::View<'a> {
         &self
     }
-    fn view_mut<'b>(&'b mut self) -> Self::ViewMut<'b> {
+    fn view_mut<'a>(&'a mut self) -> Self::ViewMut<'a> {
         self
     }
 }

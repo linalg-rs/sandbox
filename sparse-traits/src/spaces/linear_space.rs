@@ -13,7 +13,7 @@ pub trait LinearSpace {
     type F: Scalar;
 
     /// Type associated with elements of the space.
-    type E<'a>: Element<'a, Space = Self>;
+    type E<'a>: Element<Space = Self>;
 
     /// Create a new vector from the space.
     fn create_element<'a>(&'a self) -> Self::E<'a> {

@@ -32,16 +32,16 @@ impl<'a> View<'a> {
     }
 }
 
-impl<'a> Element<'a> for Vec {
+impl Element for Vec {
     type Space = SimpleSpace;
-    type View<'b> = View<'b> where Self: 'b;
-    type ViewMut<'b> = View<'b> where Self: 'b;
+    type View<'a> = View<'a> where Self: 'a;
+    type ViewMut<'a> = View<'a> where Self: 'a;
 
-    fn view<'b>(&'b self) -> Self::View<'b> {
+    fn view<'a>(&'a self) -> Self::View<'a> {
         View::new()
     }
 
-    fn view_mut<'b>(&'b mut self) -> Self::View<'b> {
+    fn view_mut<'a>(&'a mut self) -> Self::View<'a> {
         View::new()
     }
 }

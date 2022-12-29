@@ -69,7 +69,7 @@ mod tests {
         }
     }
 
-    impl<'a> Element<'a> for SimpleVector {
+    impl Element for SimpleVector {
         type Space = SimpleSpace;
         type View<'b> = View<'b> where Self: 'b;
         type ViewMut<'b> = View<'b> where Self: 'b;
