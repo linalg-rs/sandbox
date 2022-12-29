@@ -21,7 +21,7 @@ pub trait LinearSpace {
     }
 
     /// Norm of a vector.
-    fn norm(_x: ElementView<Self>, _res: &mut <Self::F as Scalar>::Real) -> Result<()> {
+    fn norm<'a>(_x: ElementView<'a, 'a, Self>, _res: &mut <Self::F as Scalar>::Real) -> Result<()> {
         Err(Error::NotImplemented)
     }
 }
