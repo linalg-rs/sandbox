@@ -13,7 +13,7 @@ struct SimpleSpace;
 
 impl LinearSpace for SimpleSpace {
     type F = f64;
-    type E = Vec;
+    type E<'a> = Vec;
 }
 
 struct View<'a> {
@@ -32,16 +32,16 @@ impl<'a> View<'a> {
     }
 }
 
-impl Element for Vec {
+impl<'a> Element<'a> for Vec {
     type Space = SimpleSpace;
-    type View<'a> = View<'a> where Self: 'a;
-    type ViewMut<'a> = View<'a> where Self: 'a;
+    type View<'b> = View<'b> where Self: 'b;
+    type ViewMut<'b> = View<'b> where Self: 'b;
 
-    fn view<'a>(&'a self) -> Self::View<'a> {
+    fn view<'b>(&'b self) -> Self::View<'b> {
         View::new()
     }
 
-    fn view_mut<'a>(&'a mut self) -> Self::View<'a> {
+    fn view_mut<'b>(&'b mut self) -> Self::View<'b> {
         View::new()
     }
 }
