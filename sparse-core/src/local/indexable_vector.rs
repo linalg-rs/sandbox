@@ -8,25 +8,25 @@ use sparse_traits::{Inner, Norm1, Norm2, NormInf, SquareSum};
 
 use super::index_set::LocalIndexSet;
 
-pub struct LocalIndexableVector<T: Scalar> {
+pub struct LocalIndexableVector<'a, T: Scalar> {
     data: Vec<T>,
-    index_set: LocalIndexSet,
+    index_set: &'a LocalIndexSet,
 }
 
-impl<T: Scalar> LocalIndexableVector<T> {
-    pub fn new(n: IndexType) -> LocalIndexableVector<T> {
+impl<'a, T: Scalar> LocalIndexableVector<'a, T> {
+    pub fn new(index_set: &'a LocalIndexSet) -> LocalIndexableVector<'a, T> {
         LocalIndexableVector {
-            data: vec![T::zero(); n],
-            index_set: LocalIndexSet::new((0, n)),
+            data: vec![T::zero(); index_set.number_of_global_indices()],
+            index_set,
         }
     }
 }
 
-impl<T: Scalar> IndexableVector for LocalIndexableVector<T> {
+impl<T: Scalar> IndexableVector for LocalIndexableVector<'_, T> {
     type Ind = LocalIndexSet;
-    type Iter<'a> = std::slice::Iter<'a, T>;
+    type Iter<'b> = std::slice::Iter<'b, T> where Self: 'b;
 
-    type IterMut<'a> = std::slice::IterMut<'a, T>;
+    type IterMut<'b> = std::slice::IterMut<'b, T> where Self: 'b;
     type T = T;
 
     fn get(&self, index: IndexType) -> Option<&Self::T> {
@@ -62,7 +62,7 @@ impl<T: Scalar> IndexableVector for LocalIndexableVector<T> {
     }
 }
 
-impl<T: Scalar> Inner for LocalIndexableVector<T> {
+impl<T: Scalar> Inner for LocalIndexableVector<'_, T> {
     type T = T;
     fn inner(&self, other: &Self) -> Result<Self::T> {
         if self.len() != other.len() {
@@ -78,7 +78,7 @@ impl<T: Scalar> Inner for LocalIndexableVector<T> {
     }
 }
 
-impl<T: Scalar> SquareSum for LocalIndexableVector<T> {
+impl<T: Scalar> SquareSum for LocalIndexableVector<'_, T> {
     type T = T;
     fn square_sum(&self) -> <Self::T as Scalar>::Real {
         self.iter()
@@ -88,7 +88,7 @@ impl<T: Scalar> SquareSum for LocalIndexableVector<T> {
     }
 }
 
-impl<T: Scalar> Norm1 for LocalIndexableVector<T> {
+impl<T: Scalar> Norm1 for LocalIndexableVector<'_, T> {
     type T = T;
     fn norm_1(&self) -> <Self::T as Scalar>::Real {
         self.iter()
@@ -98,14 +98,14 @@ impl<T: Scalar> Norm1 for LocalIndexableVector<T> {
     }
 }
 
-impl<T: Scalar> Norm2 for LocalIndexableVector<T> {
+impl<T: Scalar> Norm2 for LocalIndexableVector<'_, T> {
     type T = T;
     fn norm_2(&self) -> <Self::T as Scalar>::Real {
         <<Self::T as Scalar>::Real as Float>::sqrt(self.square_sum())
     }
 }
 
-impl<T: Scalar> NormInf for LocalIndexableVector<T> {
+impl<T: Scalar> NormInf for LocalIndexableVector<'_, T> {
     type T = T;
     fn norm_inf(&self) -> <Self::T as Scalar>::Real {
         self.iter().fold(

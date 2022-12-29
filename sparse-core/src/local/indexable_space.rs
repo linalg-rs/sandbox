@@ -23,15 +23,14 @@ impl<T: Scalar> LocalIndexableVectorSpace<T> {
 }
 
 pub struct LocalIndexableVectorSpaceElement<'a, T: Scalar> {
-    index_set: &'a LocalIndexSet,
     space: &'a LocalIndexableVectorSpace<T>,
-    data: super::indexable_vector::LocalIndexableVector<T>,
+    data: super::indexable_vector::LocalIndexableVector<'a, T>,
 }
 
 impl<'a, T: Scalar> Element for LocalIndexableVectorSpaceElement<'a, T> {
     type Space = LocalIndexableVectorSpace<T>;
-    type View<'b> = &'b super::indexable_vector::LocalIndexableVector<T> where Self: 'b;
-    type ViewMut<'b> = &'b mut super::indexable_vector::LocalIndexableVector<T> where Self: 'b;
+    type View<'b> = &'b super::indexable_vector::LocalIndexableVector<'b, T> where Self: 'b;
+    type ViewMut<'b> = &'b mut super::indexable_vector::LocalIndexableVector<'a, T> where Self: 'b;
 
     fn space(&self) -> &Self::Space {
         self.space
@@ -52,9 +51,8 @@ impl<T: Scalar> sparse_traits::LinearSpace for LocalIndexableVectorSpace<T> {
 
     fn create_element<'a>(&'a self) -> Self::E<'a> {
         LocalIndexableVectorSpaceElement {
-            index_set: &self.index_set,
             space: &self,
-            data: LocalIndexableVector::new(self.index_set.number_of_global_indices()),
+            data: LocalIndexableVector::new(&self.index_set),
         }
     }
 
