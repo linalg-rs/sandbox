@@ -47,7 +47,7 @@ impl<'a, T: Scalar> Element for LocalIndexableVectorSpaceElement<'a, T> {
 
 impl<T: Scalar> sparse_traits::LinearSpace for LocalIndexableVectorSpace<T> {
     type F = T;
-    type E<'a> = LocalIndexableVectorSpaceElement<'a, T>;
+    type E<'a> = LocalIndexableVectorSpaceElement<'a, T> where Self: 'a;
 
     fn create_element<'a>(&'a self) -> Self::E<'a> {
         LocalIndexableVectorSpaceElement {
@@ -57,7 +57,7 @@ impl<T: Scalar> sparse_traits::LinearSpace for LocalIndexableVectorSpace<T> {
     }
 
     fn norm<'a>(
-        &self,
+        &'a self,
         x: sparse_traits::ElementView<'a, 'a, Self>,
         res: &mut <Self::F as Scalar>::Real,
     ) -> sparse_traits::Result<()> {
@@ -82,7 +82,7 @@ impl<T: Scalar> InnerProductSpace for LocalIndexableVectorSpace<T> {
         &self,
         x: sparse_traits::ElementView<'a, 'a, Self>,
         other: sparse_traits::ElementView<'a, 'a, Self>,
-    ) -> sparse_traits::Result<Self::F> {
+    ) -> sparse_traits::Result<Self::F> where Self: 'a{
         x.inner(other)
     }
 }
