@@ -3,27 +3,27 @@ use num::{Float, Zero};
 use sparse_traits::types::{Error, Result};
 use sparse_traits::IndexableVector;
 use sparse_traits::Scalar;
-use sparse_traits::{IndexSet, IndexType};
+use sparse_traits::{IndexLayout, IndexType};
 use sparse_traits::{Inner, Norm1, Norm2, NormInf, SquareSum};
 
-use super::index_set::LocalIndexSet;
+use super::index_layout::LocalIndexLayout;
 
 pub struct LocalIndexableVector<'a, T: Scalar> {
     data: Vec<T>,
-    index_set: &'a LocalIndexSet,
+    index_layout: &'a LocalIndexLayout,
 }
 
 impl<'a, T: Scalar> LocalIndexableVector<'a, T> {
-    pub fn new(index_set: &'a LocalIndexSet) -> LocalIndexableVector<'a, T> {
+    pub fn new(index_layout: &'a LocalIndexLayout) -> LocalIndexableVector<'a, T> {
         LocalIndexableVector {
-            data: vec![T::zero(); index_set.number_of_global_indices()],
-            index_set,
+            data: vec![T::zero(); index_layout.number_of_global_indices()],
+            index_layout,
         }
     }
 }
 
 impl<T: Scalar> IndexableVector for LocalIndexableVector<'_, T> {
-    type Ind = LocalIndexSet;
+    type Ind = LocalIndexLayout;
     type Iter<'b> = std::slice::Iter<'b, T> where Self: 'b;
 
     type IterMut<'b> = std::slice::IterMut<'b, T> where Self: 'b;
@@ -45,8 +45,8 @@ impl<T: Scalar> IndexableVector for LocalIndexableVector<'_, T> {
         self.data.get_unchecked_mut(index)
     }
 
-    fn index_set(&self) -> &Self::Ind {
-        &self.index_set
+    fn index_layout(&self) -> &Self::Ind {
+        &self.index_layout
     }
 
     fn iter(&self) -> Self::Iter<'_> {
@@ -58,7 +58,7 @@ impl<T: Scalar> IndexableVector for LocalIndexableVector<'_, T> {
     }
 
     fn len(&self) -> IndexType {
-        self.index_set.number_of_global_indices()
+        self.index_layout.number_of_global_indices()
     }
 }
 

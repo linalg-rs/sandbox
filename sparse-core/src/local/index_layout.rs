@@ -1,11 +1,11 @@
-use sparse_traits::{IndexSet, IndexType};
+use sparse_traits::{IndexLayout, IndexType};
 
-pub struct LocalIndexSet {
+pub struct LocalIndexLayout {
     range: Option<(IndexType, IndexType)>,
     number_of_global_indices: IndexType,
 }
 
-impl LocalIndexSet {
+impl LocalIndexLayout {
     pub fn new(range: (IndexType, IndexType)) -> Self {
         Self {
             range: Some(range),
@@ -14,7 +14,7 @@ impl LocalIndexSet {
     }
 }
 
-impl IndexSet for LocalIndexSet {
+impl IndexLayout for LocalIndexLayout {
     fn number_of_local_indices(&self) -> IndexType {
         self.number_of_global_indices()
     }
@@ -33,6 +33,14 @@ impl IndexSet for LocalIndexSet {
             _ => &None,
         }
     }
+
+    fn local2global(&self, index: IndexType) -> Option<IndexType> {
+        if index < self.number_of_local_indices() {
+            Some(index)
+        } else {
+            None
+        }
+    }
 }
 
 #[cfg(test)]
@@ -42,7 +50,7 @@ mod test {
 
     #[test]
     fn test_local_index_set() {
-        let index_set = LocalIndexSet::new((3, 14));
+        let index_set = LocalIndexLayout::new((3, 14));
 
         // Test that the range is correct on rank 0
         assert_eq!(index_set.index_range(0).unwrap(), (3, 14));

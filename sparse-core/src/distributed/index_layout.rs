@@ -1,13 +1,15 @@
-use sparse_traits::{IndexSet, IndexType};
+use mpi::traits::Communicator;
+use sparse_traits::{IndexLayout, IndexType};
 
-pub struct DistributedIndexSet {
+pub struct DistributedIndexLayout<'a, C: Communicator> {
     ranges: Vec<Option<(IndexType, IndexType)>>,
     my_rank: IndexType,
     number_of_global_indices: IndexType,
+    comm: &'a C,
 }
 
-impl DistributedIndexSet {
-    pub fn new(range: (IndexType, IndexType), comm: &dyn mpi::traits::Communicator) -> Self {
+impl<'a, C: Communicator> DistributedIndexLayout<'a, C> {
+    pub fn new(range: (IndexType, IndexType), comm: &'a C) -> Self {
         let comm_size = comm.size() as IndexType;
         let my_rank = comm.rank() as IndexType;
 
@@ -67,11 +69,15 @@ impl DistributedIndexSet {
             ranges,
             my_rank,
             number_of_global_indices,
+            comm,
         }
+    }
+    pub fn comm(&self) -> &C {
+        self.comm
     }
 }
 
-impl IndexSet for DistributedIndexSet {
+impl<'a, C: Communicator> IndexLayout for DistributedIndexLayout<'a, C> {
     fn index_range(&self, rank: IndexType) -> &Option<(IndexType, IndexType)> {
         self.ranges.get(rank).unwrap()
     }
@@ -90,5 +96,13 @@ impl IndexSet for DistributedIndexSet {
 
     fn number_of_global_indices(&self) -> IndexType {
         self.number_of_global_indices
+    }
+
+    fn local2global(&self, index: IndexType) -> Option<IndexType> {
+        if index < self.number_of_local_indices() {
+            Some(self.local_range().unwrap().0 + index)
+        } else {
+            None
+        }
     }
 }

@@ -15,4 +15,8 @@ fn main() {
     let n = vec.view().len();
     println!("The dimension of the vector is {}", n);
     println!("The norm of the vector is {}", vec.view().norm_2());
+
+    let mut norm: f64 = 0.0;
+    space.norm(vec.view(), &mut norm).unwrap();
+    println!("The norm of the vector is {}", norm);
 }

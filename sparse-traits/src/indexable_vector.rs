@@ -1,6 +1,6 @@
 //! An indexable vector is the standard type for n-dimensional containers
 use crate::types::{IndexType, Scalar};
-use crate::IndexSet;
+use crate::IndexLayout;
 
 pub trait IndexableVector {
     type T: Scalar;
@@ -11,7 +11,7 @@ pub trait IndexableVector {
     where
         Self: 'a;
 
-    type Ind: IndexSet;
+    type Ind: IndexLayout;
 
     fn iter(&self) -> Self::Iter<'_>;
 
@@ -26,7 +26,7 @@ pub trait IndexableVector {
 
     fn len(&self) -> IndexType;
 
-    fn index_set(&self) -> &Self::Ind;
+    fn index_layout(&self) -> &Self::Ind;
 }
 
 pub trait Inner {

@@ -1,6 +1,7 @@
 //! An indexable element has an associated index set.
-use crate::index_set::IndexSet;
+use crate::index_layout::IndexLayout;
 
 pub trait IndexableElement: super::element::Element {
-    fn index_set(&self) -> &dyn IndexSet;
+    type Ind: IndexLayout;
+    fn index_layout(&self) -> &Self::Ind;
 }

@@ -2,21 +2,21 @@
 
 use std::marker::PhantomData;
 
-use super::index_set::LocalIndexSet;
+use super::index_layout::LocalIndexLayout;
 use super::indexable_vector::LocalIndexableVector;
 use sparse_traits::types::{IndexType, Scalar};
-use sparse_traits::Inner;
-use sparse_traits::{Element, IndexSet, IndexableVectorSpace, InnerProductSpace};
+use sparse_traits::{Element, IndexLayout, IndexableVectorSpace, InnerProductSpace};
+use sparse_traits::{Inner, Norm2};
 
 pub struct LocalIndexableVectorSpace<T: Scalar> {
-    index_set: LocalIndexSet,
+    index_layout: LocalIndexLayout,
     _phantom: PhantomData<T>,
 }
 
 impl<T: Scalar> LocalIndexableVectorSpace<T> {
     pub fn new(n: IndexType) -> Self {
         LocalIndexableVectorSpace {
-            index_set: LocalIndexSet::new((0, n)),
+            index_layout: LocalIndexLayout::new((0, n)),
             _phantom: PhantomData,
         }
     }
@@ -52,25 +52,28 @@ impl<T: Scalar> sparse_traits::LinearSpace for LocalIndexableVectorSpace<T> {
     fn create_element<'a>(&'a self) -> Self::E<'a> {
         LocalIndexableVectorSpaceElement {
             space: &self,
-            data: LocalIndexableVector::new(&self.index_set),
+            data: LocalIndexableVector::new(&self.index_layout),
         }
     }
 
     fn norm<'a>(
-        _x: sparse_traits::ElementView<'a, 'a, Self>,
-        _res: &mut <Self::F as Scalar>::Real,
+        &self,
+        x: sparse_traits::ElementView<'a, 'a, Self>,
+        res: &mut <Self::F as Scalar>::Real,
     ) -> sparse_traits::Result<()> {
-        Err(sparse_traits::Error::NotImplemented)
+        *res = x.norm_2();
+        Ok(())
     }
 }
 
 impl<T: Scalar> IndexableVectorSpace for LocalIndexableVectorSpace<T> {
+    type Ind = LocalIndexLayout;
     fn dimension(&self) -> IndexType {
-        self.index_set().number_of_global_indices()
+        self.index_layout().number_of_global_indices()
     }
 
-    fn index_set(&self) -> &dyn IndexSet {
-        &self.index_set
+    fn index_layout(&self) -> &Self::Ind {
+        &self.index_layout
     }
 }
 

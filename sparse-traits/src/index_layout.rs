@@ -2,7 +2,7 @@
 
 use crate::IndexType;
 
-pub trait IndexSet {
+pub trait IndexLayout {
     /// The local index range.
     fn local_range(&self) -> &Option<(IndexType, IndexType)>;
 
@@ -13,4 +13,7 @@ pub trait IndexSet {
 
     /// Index range on a given process.
     fn index_range(&self, rank: IndexType) -> &Option<(IndexType, IndexType)>;
+
+    /// Convert local to global indices.
+    fn local2global(&self, index: IndexType) -> Option<IndexType>;
 }
