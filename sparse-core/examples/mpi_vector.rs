@@ -1,25 +1,26 @@
-
 //! Example file for creating vectors.
 
-use mpi::topology::SystemCommunicator;
 use sparse_core::distributed::index_layout::DistributedIndexLayout;
-use sparse_traits::indexable_vector::{IndexableVector, Inner, SquareSum, NormInf};
-use sparse_core::distributed::DistributedIndexableVector;
+use sparse_core::distributed::indexable_space::DistributedIndexableVectorSpace;
+use sparse_traits::indexable_vector::{IndexableVector, Inner, NormInf, SquareSum};
+use sparse_traits::Element;
+use sparse_traits::LinearSpace;
 
 fn main() {
-
     let universe = mpi::initialize().unwrap();
     let world = universe.world();
 
-    let index_layout = DistributedIndexLayout::new((0, 4), &world);
+    let index_layout = DistributedIndexLayout::new((0, 100), &world);
 
-    let mut vec = DistributedIndexableVector::<'_, f64, SystemCommunicator>::new(&index_layout);
-    if let Some(val) = vec.get_mut(0) {
+    let space = DistributedIndexableVectorSpace::<'_, f64, _>::new(&index_layout);
+
+    let mut vec = space.create_element();
+
+    if let Some(val) = vec.view_mut().get_mut(0) {
         *val = 0.5;
     }
 
-
-    println!("Inner: {}", vec.inner(&vec).unwrap());
-    println!("Square sum: {}", vec.square_sum());
-    println!("Inf norm: {}", vec.norm_inf());
+    println!("Inner: {}", vec.view().inner(&vec.view()).unwrap());
+    println!("Square sum: {}", vec.view().square_sum());
+    println!("Inf norm: {}", vec.view().norm_inf());
 }

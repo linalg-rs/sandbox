@@ -23,13 +23,13 @@ impl<'comm, T: Scalar + Equivalence, C: Communicator> DistributedIndexableVector
     }
 }
 
-pub struct DistributedIndexableVectorSpaceElement<'comm, T: Scalar + Equivalence, C: Communicator> {
-    space: &'comm DistributedIndexableVectorSpace<'comm, T, C>,
+pub struct DistributedIndexableVectorSpaceElement<'space, 'comm, T: Scalar + Equivalence, C: Communicator> {
+    space: &'space DistributedIndexableVectorSpace<'comm, T, C>,
     data: super::indexable_vector::DistributedIndexableVector<'comm, T, C>,
 }
 
-impl<'comm, T: Scalar + Equivalence, C: Communicator> Element
-    for DistributedIndexableVectorSpaceElement<'comm, T, C> where T::Real: Equivalence
+impl<'space, 'comm, T: Scalar + Equivalence, C: Communicator> Element
+    for DistributedIndexableVectorSpaceElement<'space, 'comm, T, C> where T::Real: Equivalence
 {
     type Space = DistributedIndexableVectorSpace<'comm, T, C>;
     type View<'b> = &'b super::indexable_vector::DistributedIndexableVector<'comm, T, C> where Self: 'b;
@@ -48,18 +48,18 @@ impl<'comm, T: Scalar + Equivalence, C: Communicator> Element
     }
 }
 
-impl<'comm,'b: 'comm, T: Scalar + Equivalence, C: Communicator> sparse_traits::LinearSpace
+impl<'comm, T: Scalar + Equivalence, C: Communicator> sparse_traits::LinearSpace
     for DistributedIndexableVectorSpace<'comm, T, C>
 where
     T::Real: Equivalence,
 {
     type F = T;
-    type E<'c> = DistributedIndexableVectorSpaceElement<'comm, T, C> where Self: 'c;
+    type E<'space> = DistributedIndexableVectorSpaceElement<'space, 'comm, T, C> where Self: 'space;
 
-    fn create_element(&'b self) -> Self::E<'b>
+    fn create_element<'space>(&'space self) -> Self::E<'space>
     {
         DistributedIndexableVectorSpaceElement {
-            space: & self,
+            space: &self,
             data: DistributedIndexableVector::<'comm, T, C>::new(&self.index_layout),
         }
     }
