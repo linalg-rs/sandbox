@@ -6,8 +6,8 @@ use std::marker::PhantomData;
 use super::index_layout::DistributedIndexLayout;
 use super::indexable_vector::DistributedIndexableVector;
 use sparse_traits::types::{IndexType, Scalar};
+use sparse_traits::Inner;
 use sparse_traits::{Element, IndexLayout, IndexableVectorSpace, InnerProductSpace};
-use sparse_traits::{Inner, Norm2};
 
 pub struct DistributedIndexableVectorSpace<'comm, T: Scalar + Equivalence, C: Communicator> {
     index_layout: &'comm DistributedIndexLayout<'comm, C>,
@@ -23,13 +23,20 @@ impl<'comm, T: Scalar + Equivalence, C: Communicator> DistributedIndexableVector
     }
 }
 
-pub struct DistributedIndexableVectorSpaceElement<'space, 'comm, T: Scalar + Equivalence, C: Communicator> {
+pub struct DistributedIndexableVectorSpaceElement<
+    'space,
+    'comm,
+    T: Scalar + Equivalence,
+    C: Communicator,
+> {
     space: &'space DistributedIndexableVectorSpace<'comm, T, C>,
     data: super::indexable_vector::DistributedIndexableVector<'comm, T, C>,
 }
 
 impl<'space, 'comm, T: Scalar + Equivalence, C: Communicator> Element
-    for DistributedIndexableVectorSpaceElement<'space, 'comm, T, C> where T::Real: Equivalence
+    for DistributedIndexableVectorSpaceElement<'space, 'comm, T, C>
+where
+    T::Real: Equivalence,
 {
     type Space = DistributedIndexableVectorSpace<'comm, T, C>;
     type View<'b> = &'b super::indexable_vector::DistributedIndexableVector<'comm, T, C> where Self: 'b;
@@ -56,22 +63,11 @@ where
     type F = T;
     type E<'space> = DistributedIndexableVectorSpaceElement<'space, 'comm, T, C> where Self: 'space;
 
-    fn create_element<'space>(&'space self) -> Self::E<'space>
-    {
+    fn create_element<'space>(&'space self) -> Self::E<'space> {
         DistributedIndexableVectorSpaceElement {
             space: &self,
             data: DistributedIndexableVector::<'comm, T, C>::new(&self.index_layout),
         }
-    }
-
-    fn norm<'c>(
-        &'c self,
-        x: sparse_traits::ElementView<'c, 'c, Self>,
-        res: &mut <Self::F as Scalar>::Real,
-    ) -> sparse_traits::Result<()>
-    {
-        *res = x.norm_2();
-        Ok(())
     }
 }
 

@@ -2,6 +2,7 @@
 
 use sparse_core::local::indexable_space::LocalIndexableVectorSpace;
 use sparse_traits::Element;
+use sparse_traits::NormedSpace;
 use sparse_traits::IndexableVector;
 use sparse_traits::LinearSpace;
 use sparse_traits::Norm2;
@@ -16,7 +17,5 @@ fn main() {
     println!("The dimension of the vector is {}", n);
     println!("The norm of the vector is {}", vec.view().norm_2());
 
-    let mut norm: f64 = 0.0;
-    space.norm(vec.view(), &mut norm).unwrap();
-    println!("The norm of the vector is {}", norm);
+    println!("The norm of the vector is {}", space.norm(vec.view()));
 }
