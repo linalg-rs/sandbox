@@ -3,9 +3,9 @@
 use sparse_core::local::indexable_space::LocalIndexableVectorSpace;
 use sparse_traits::Element;
 use sparse_traits::NormedSpace;
-use sparse_traits::IndexableVector;
+use sparse_traits::linalg::IndexableVector;
 use sparse_traits::LinearSpace;
-use sparse_traits::Norm2;
+use sparse_traits::linalg::Norm2;
 
 fn main() {
     let space = LocalIndexableVectorSpace::<f64>::new(10);
@@ -17,5 +17,5 @@ fn main() {
     println!("The dimension of the vector is {}", n);
     println!("The norm of the vector is {}", vec.view().norm_2());
 
-    println!("The norm of the vector is {}", space.norm(vec.view()));
+    println!("The norm of the vector is {}", space.norm(&vec.view()));
 }

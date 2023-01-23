@@ -6,8 +6,8 @@ use std::marker::PhantomData;
 use super::index_layout::DistributedIndexLayout;
 use super::indexable_vector::DistributedIndexableVector;
 use sparse_traits::types::{IndexType, Scalar};
-use sparse_traits::Inner;
-use sparse_traits::{Element, IndexLayout, IndexableVectorSpace, InnerProductSpace};
+use sparse_traits::linalg::Inner;
+use sparse_traits::{Element, IndexLayout, IndexableSpace, InnerProductSpace};
 
 pub struct DistributedIndexableVectorSpace<'comm, T: Scalar + Equivalence, C: Communicator> {
     index_layout: &'comm DistributedIndexLayout<'comm, C>,
@@ -71,7 +71,7 @@ where
     }
 }
 
-impl<'a, T: Scalar + Equivalence, C: Communicator> IndexableVectorSpace
+impl<'a, T: Scalar + Equivalence, C: Communicator> IndexableSpace
     for DistributedIndexableVectorSpace<'a, T, C>
 where
     T::Real: Equivalence,
@@ -93,8 +93,8 @@ where
 {
     fn inner<'b>(
         &self,
-        x: sparse_traits::ElementView<'b, 'b, Self>,
-        other: sparse_traits::ElementView<'b, 'b, Self>,
+        x: &sparse_traits::ElementView<'b, 'b, Self>,
+        other: &sparse_traits::ElementView<'b, 'b, Self>,
     ) -> sparse_traits::Result<Self::F>
     where
         Self: 'b,

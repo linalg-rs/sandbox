@@ -2,7 +2,7 @@ use super::LinearSpace;
 use crate::types::IndexType;
 use crate::IndexLayout;
 
-pub trait IndexableVectorSpace: LinearSpace {
+pub trait IndexableSpace: LinearSpace {
     type Ind: IndexLayout;
     fn dimension(&self) -> IndexType {
         self.index_layout().number_of_global_indices()

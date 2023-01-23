@@ -1,10 +1,10 @@
 //! An Indexable Vector is a container whose elements can be 1d indexed.
 use num::{Float, Zero};
 use sparse_traits::types::{Error, Result};
-use sparse_traits::IndexableVector;
+use sparse_traits::linalg::IndexableVector;
 use sparse_traits::Scalar;
 use sparse_traits::{IndexLayout, IndexType};
-use sparse_traits::{Inner, Norm1, Norm2, NormInf, SquareSum};
+use sparse_traits::linalg::{Inner, Norm1, Norm2, NormInf, SquareSum};
 
 use super::index_layout::LocalIndexLayout;
 

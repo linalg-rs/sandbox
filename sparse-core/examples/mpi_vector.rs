@@ -2,7 +2,7 @@
 
 use sparse_core::distributed::index_layout::DistributedIndexLayout;
 use sparse_core::distributed::indexable_space::DistributedIndexableVectorSpace;
-use sparse_traits::indexable_vector::{IndexableVector, Inner, NormInf, SquareSum};
+use sparse_traits::linalg::{IndexableVector, Inner, NormInf, SquareSum};
 use sparse_traits::Element;
 use sparse_traits::LinearSpace;
 

@@ -5,8 +5,8 @@ use std::marker::PhantomData;
 use super::index_layout::LocalIndexLayout;
 use super::indexable_vector::LocalIndexableVector;
 use sparse_traits::types::{IndexType, Scalar};
-use sparse_traits::{Element, IndexLayout, IndexableVectorSpace, InnerProductSpace, NormedSpace};
-use sparse_traits::{Inner, Norm2};
+use sparse_traits::{Element, IndexLayout, IndexableSpace, InnerProductSpace, NormedSpace};
+use sparse_traits::linalg::{Inner, Norm2};
 
 pub struct LocalIndexableVectorSpace<T: Scalar> {
     index_layout: LocalIndexLayout,
@@ -58,7 +58,7 @@ impl<T: Scalar> sparse_traits::LinearSpace for LocalIndexableVectorSpace<T> {
 
 }
 
-impl<T: Scalar> IndexableVectorSpace for LocalIndexableVectorSpace<T> {
+impl<T: Scalar> IndexableSpace for LocalIndexableVectorSpace<T> {
     type Ind = LocalIndexLayout;
     fn dimension(&self) -> IndexType {
         self.index_layout().number_of_global_indices()
@@ -72,8 +72,8 @@ impl<T: Scalar> IndexableVectorSpace for LocalIndexableVectorSpace<T> {
 impl<T: Scalar> InnerProductSpace for LocalIndexableVectorSpace<T> {
     fn inner<'a>(
         &self,
-        x: sparse_traits::ElementView<'a, 'a, Self>,
-        other: sparse_traits::ElementView<'a, 'a, Self>,
+        x: &sparse_traits::ElementView<'a, 'a, Self>,
+        other: &sparse_traits::ElementView<'a, 'a, Self>,
     ) -> sparse_traits::Result<Self::F> where Self: 'a{
         x.inner(other)
     }
@@ -81,7 +81,7 @@ impl<T: Scalar> InnerProductSpace for LocalIndexableVectorSpace<T> {
 
 
 impl<T: Scalar> NormedSpace for LocalIndexableVectorSpace<T> {
-   fn norm<'a>(&'a self, x: sparse_traits::ElementView<'a, 'a, Self>) -> <Self::F as Scalar>::Real {
+   fn norm<'a>(&'a self, x: &sparse_traits::ElementView<'a, 'a, Self>) -> <Self::F as Scalar>::Real {
       x.norm_2() 
    } 
 }
