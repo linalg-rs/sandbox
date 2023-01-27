@@ -5,7 +5,7 @@ use sparse_traits::types::{Error, Result};
 use sparse_traits::linalg::IndexableVector;
 use sparse_traits::Scalar;
 use sparse_traits::{IndexLayout, IndexType};
-use sparse_traits::linalg::{Inner, Norm1, Norm2, NormInf, SquareSum};
+use sparse_traits::linalg::{Inner, Norm1, Norm2, NormInf, AbsSquareSum};
 
 use super::index_layout::DistributedIndexLayout;
 
@@ -89,7 +89,7 @@ impl<T: Scalar + Equivalence, C: Communicator> Inner for DistributedIndexableVec
     }
 }
 
-impl<T: Scalar + Equivalence, C: Communicator> SquareSum for DistributedIndexableVector<'_, T, C>
+impl<T: Scalar + Equivalence, C: Communicator> AbsSquareSum for DistributedIndexableVector<'_, T, C>
 where
     T::Real: Equivalence,
 {

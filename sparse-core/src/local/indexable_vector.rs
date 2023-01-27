@@ -1,10 +1,10 @@
 //! An Indexable Vector is a container whose elements can be 1d indexed.
 use num::{Float, Zero};
-use sparse_traits::types::{Error, Result};
+use sparse_traits::linalg::traits::*;
 use sparse_traits::linalg::IndexableVector;
+use sparse_traits::types::{Error, Result};
 use sparse_traits::Scalar;
 use sparse_traits::{IndexLayout, IndexType};
-use sparse_traits::linalg::{Inner, Norm1, Norm2, NormInf, SquareSum};
 
 use super::index_layout::LocalIndexLayout;
 
@@ -78,7 +78,7 @@ impl<T: Scalar> Inner for LocalIndexableVector<'_, T> {
     }
 }
 
-impl<T: Scalar> SquareSum for LocalIndexableVector<'_, T> {
+impl<T: Scalar> AbsSquareSum for LocalIndexableVector<'_, T> {
     type T = T;
     fn square_sum(&self) -> <Self::T as Scalar>::Real {
         self.iter()
@@ -112,5 +112,70 @@ impl<T: Scalar> NormInf for LocalIndexableVector<'_, T> {
             <<Self::T as Scalar>::Real as Float>::neg_infinity(),
             |acc, &elem| <<Self::T as Scalar>::Real as Float>::max(acc, elem.abs()),
         )
+    }
+}
+
+impl<T: Scalar> Swap for LocalIndexableVector<'_, T> {
+    type T = T;
+    fn swap(&mut self, other: &mut Self) -> sparse_traits::types::Result<()> {
+        if self.len() != other.len() {
+            Err(Error::OperationFailed)
+        } else {
+            for (first, second) in self.iter_mut().zip(other.iter_mut()) {
+                std::mem::swap(first, second);
+            }
+            Ok(())
+        }
+    }
+}
+
+impl<T: Scalar> Fill for LocalIndexableVector<'_, T> {
+    type T = T;
+    fn fill(&mut self, other: &Self) -> sparse_traits::types::Result<()> {
+        if self.len() != other.len() {
+            Err(Error::OperationFailed)
+        } else {
+            for (first, second) in self.iter_mut().zip(other.iter()) {
+                *first = *second;
+            }
+            Ok(())
+        }
+    }
+}
+
+impl<T: Scalar> ScalarMult for LocalIndexableVector<'_, T> {
+    type T = T;
+    fn scalar_mult(&mut self, scalar: Self::T) {
+        for elem in self.iter_mut() {
+            *elem *= scalar;
+        }
+    }
+}
+
+impl<T: Scalar> Axpy for LocalIndexableVector<'_, T> {
+    type T = T;
+    fn axpy(&mut self, other: &Self, scalar: Self::T) -> sparse_traits::types::Result<()> {
+        if self.len() != other.len() {
+            Err(Error::OperationFailed)
+        } else {
+            for (first, second) in self.iter_mut().zip(other.iter()) {
+                *first += scalar * *second;
+            }
+            Ok(())
+        }
+    }
+}
+
+impl<'a, T: Scalar> CreateFrom<'a> for LocalIndexableVector<'a, T> {
+    type T = T;
+    type Ind = super::index_layout::LocalIndexLayout;
+    fn create_from<'b>(index_layout: &'b Self::Ind, scalar: Self::T) -> Self
+    where
+        'b: 'a,
+    {
+        Self {
+            data: vec![scalar; index_layout.number_of_global_indices()],
+            index_layout,
+        }
     }
 }
