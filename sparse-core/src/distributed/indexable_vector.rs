@@ -2,12 +2,13 @@
 use crate::local::indexable_vector::{
     LocalIndexableVector, LocalIndexableVectorView, LocalIndexableVectorViewMut,
 };
+use crate::tools::has_unique_some;
 use mpi::traits::*;
 use num::{Float, Zero};
-use sparse_traits::linalg::*;
+use sparse_traits::{linalg::*, IndexLayout};
 use sparse_traits::linalg::{AbsSquareSum, Inner, Norm1, Norm2, NormInf};
 use sparse_traits::types::{Error, Result};
-use sparse_traits::Scalar;
+use sparse_traits::{IndexType, Scalar};
 
 use super::index_layout::DistributedIndexLayout;
 
@@ -29,6 +30,31 @@ impl<'a, T: Scalar + Equivalence, C: Communicator> DistributedIndexableVector<'a
 
     fn local(&self) -> Option<&LocalIndexableVector<'a, T>> {
         self.local.as_ref()
+    }
+
+    pub fn fill_from(&self, other: &Option<LocalIndexableVector<T>>) -> Result<()> {
+        let root: i32;
+
+        if let Some(rank) = has_unique_some(other, self.index_layout().comm()) {
+            root = rank
+        } else {
+            return Err(Error::OperationFailed);
+        }
+
+        if root != 0 {
+            return Err(Error::OperationFailed);
+        }
+
+        // Now broadcast the values
+        
+        if self.index_layout().comm().rank() == root{
+            // Broadcast from rank 0
+        } else {
+            // Broadcast into other ranks
+
+        }
+
+        Ok(())
     }
 }
 
@@ -165,5 +191,3 @@ where
         global_result
     }
 }
-
-

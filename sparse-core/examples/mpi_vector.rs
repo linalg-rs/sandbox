@@ -6,6 +6,7 @@ use sparse_core::distributed::indexable_space::DistributedIndexableVectorSpace;
 use sparse_traits::linalg::{Inner, NormInf, AbsSquareSum};
 use sparse_traits::Element;
 use sparse_traits::LinearSpace;
+use sparse_traits::IndexLayout;
 
 fn main() {
     let universe = mpi::initialize().unwrap();
@@ -23,7 +24,9 @@ fn main() {
         *val = 0.5;
     }
 
-    println!("Inner: {}", vec.view().inner(&vec.view()).unwrap());
-    println!("Square sum: {}", vec.view().abs_square_sum());
-    println!("Inf norm: {}", vec.view().norm_inf());
+    println!("Range: {:#?}", index_layout.local_range());
+
+    // println!("Inner: {}", vec.view().inner(&vec.view()).unwrap());
+    // println!("Square sum: {}", vec.view().abs_square_sum());
+    // println!("Inf norm: {}", vec.view().norm_inf());
 }

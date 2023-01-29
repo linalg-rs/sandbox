@@ -8,6 +8,8 @@ pub struct DistributedIndexLayout<'a, C: Communicator> {
     my_rank: IndexType,
     local_layout: Option<LocalIndexLayout>,
     number_of_global_indices: IndexType,
+    counts: Vec<IndexType>,
+    displacements: Vec<IndexType>,
     comm: &'a C,
 }
 
@@ -15,6 +17,8 @@ impl<'a, C: Communicator> DistributedIndexLayout<'a, C> {
     pub fn new(range: (IndexType, IndexType), comm: &'a C) -> Self {
         let comm_size = comm.size() as IndexType;
         let my_rank = comm.rank() as IndexType;
+        let mut counts = vec![0 as IndexType; comm_size as usize];
+        let mut displacements =  vec![0 as IndexType; comm_size as usize];
 
         let mut ranges = Vec::<Option<(IndexType, IndexType)>>::with_capacity(comm_size as usize);
 
@@ -34,6 +38,17 @@ impl<'a, C: Communicator> DistributedIndexLayout<'a, C> {
             for _ in range.1..comm_size {
                 ranges.push(None);
             }
+
+            for index in 0..number_of_global_indices {
+                counts[index] = 1;
+                displacements[index] = index;
+            }
+
+            for index in number_of_global_indices..comm_size {
+                counts[index] = 0;
+                displacements[index] = number_of_global_indices;
+            }
+
         } else {
             // We want to equally distribute the range
             // among the ranks. Assume that we have 12
@@ -53,7 +68,8 @@ impl<'a, C: Communicator> DistributedIndexLayout<'a, C> {
             let mut count = range.0;
             let mut new_count;
 
-            for index in 0..number_of_global_indices {
+
+            for index in 0..comm_size {
                 if index < remainder {
                     // Add one remainder index to the first
                     // indices.
@@ -63,6 +79,8 @@ impl<'a, C: Communicator> DistributedIndexLayout<'a, C> {
                     // add chunk size indices to each rank.
                     new_count = count + chunk;
                 }
+                counts[index] = new_count - count;
+                displacements[index] = count;
                 ranges.push(Some((count, new_count)));
                 count = new_count;
             }
@@ -78,11 +96,21 @@ impl<'a, C: Communicator> DistributedIndexLayout<'a, C> {
             my_rank,
             local_layout,
             number_of_global_indices,
+            counts,
+            displacements,
             comm,
         }
     }
     pub fn comm(&self) -> &C {
         self.comm
+    }
+
+    pub fn counts(&self) -> &Vec<IndexType> {
+        &self.counts
+    }
+
+    pub fn displacements(&self) -> &Vec<IndexType> {
+        &self.displacements
     }
 
     // This method is needed for Distributed vectors to obtain a dummy layout
