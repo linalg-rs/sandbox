@@ -1,25 +1,34 @@
 //! An Indexable Vector is a container whose elements can be 1d indexed.
+use crate::local::indexable_vector::{
+    LocalIndexableVector, LocalIndexableVectorView, LocalIndexableVectorViewMut,
+};
 use mpi::traits::*;
 use num::{Float, Zero};
-use sparse_traits::linalg::IndexableVector;
+use sparse_traits::linalg::*;
 use sparse_traits::linalg::{AbsSquareSum, Inner, Norm1, Norm2, NormInf};
 use sparse_traits::types::{Error, Result};
 use sparse_traits::Scalar;
-use sparse_traits::{IndexLayout, IndexType};
 
 use super::index_layout::DistributedIndexLayout;
 
 pub struct DistributedIndexableVector<'a, T: Scalar + Equivalence, C: Communicator> {
-    data: Vec<T>,
     index_layout: &'a DistributedIndexLayout<'a, C>,
+    local: Option<LocalIndexableVector<'a, T>>,
 }
 
 impl<'a, T: Scalar + Equivalence, C: Communicator> DistributedIndexableVector<'a, T, C> {
     pub fn new(index_layout: &'a DistributedIndexLayout<'a, C>) -> Self {
         DistributedIndexableVector {
-            data: vec![T::zero(); index_layout.number_of_local_indices()],
             index_layout,
+            local: match index_layout.local_layout() {
+                Some(layout) => Some(LocalIndexableVector::new(layout)),
+                None => None,
+            },
         }
+    }
+
+    fn local(&self) -> Option<&LocalIndexableVector<'a, T>> {
+        self.local.as_ref()
     }
 }
 
@@ -27,61 +36,43 @@ impl<'a, T: Scalar + Equivalence, C: Communicator> IndexableVector
     for DistributedIndexableVector<'a, T, C>
 {
     type T = T;
+    type View<'b> = LocalIndexableVectorView<'b, T> where Self: 'b;
+    type ViewMut<'b> = LocalIndexableVectorViewMut<'b, T> where Self: 'b;
     type Ind = DistributedIndexLayout<'a, C>;
-    type Iter<'b> = std::slice::Iter<'b, T> where Self: 'b;
-
-    type IterMut<'b> = std::slice::IterMut<'b, T> where Self: 'b;
-    fn get(&self, index: IndexType) -> Option<&Self::T> {
-        self.data.get(index)
-    }
-    fn len(&self) -> IndexType {
-        self.data.len()
-    }
-
-    fn iter(&self) -> Self::Iter<'_> {
-        self.data.iter()
-    }
-
-    fn get_mut(&mut self, index: IndexType) -> Option<&mut Self::T> {
-        self.data.get_mut(index)
-    }
-
-    fn iter_mut(&mut self) -> Self::IterMut<'_> {
-        self.data.iter_mut()
-    }
 
     fn index_layout(&self) -> &Self::Ind {
-        self.index_layout
+        &self.index_layout
     }
 
-    unsafe fn get_unchecked(&self, index: IndexType) -> &Self::T {
-        self.data.get_unchecked(index)
+    fn view<'b>(&'b self) -> Option<Self::View<'b>> {
+        match &self.local {
+            Some(local_vec) => Some(local_vec.view().unwrap()),
+            None => None,
+        }
     }
 
-    unsafe fn get_unchecked_mut(&mut self, index: IndexType) -> &mut Self::T {
-        self.data.get_unchecked_mut(index)
-    }
-
-    fn new_from(&self) -> Self {
-        Self::new(self.index_layout)
+    fn view_mut<'b>(&'b mut self) -> Option<Self::ViewMut<'b>> {
+        match &mut self.local {
+            Some(local_vec) => Some(local_vec.view_mut().unwrap()),
+            None => None,
+        }
     }
 }
 
 impl<T: Scalar + Equivalence, C: Communicator> Inner for DistributedIndexableVector<'_, T, C> {
     type T = T;
     fn inner(&self, other: &Self) -> Result<Self::T> {
-        if self.len() != other.len() {
+        if !self.index_layout().is_same(other.index_layout()) {
             return Err(Error::OperationFailed);
         }
 
-        let comm = self.index_layout.comm();
+        let mut local_result = T::zero();
 
-        let local_result = self
-            .iter()
-            .zip(other.iter())
-            .fold(<Self::T as Zero>::zero(), |acc, (&first, &second)| {
-                acc + first * second.conj()
-            });
+        if let Some(local) = self.local() {
+            local_result = local.inner(&other.local().unwrap()).unwrap();
+        }
+
+        let comm = self.index_layout.comm();
 
         let mut global_result = T::zero();
         comm.all_reduce_into(
@@ -101,13 +92,13 @@ where
     fn abs_square_sum(&self) -> <Self::T as Scalar>::Real {
         let comm = self.index_layout.comm();
 
-        let local_result = self
-            .iter()
-            .fold(<<Self::T as Scalar>::Real as Zero>::zero(), |acc, &elem| {
-                acc + elem.square()
-            });
+        let mut local_result = <<Self::T as Scalar>::Real>::zero();
 
-        let mut global_result = <<Self::T as Scalar>::Real as Zero>::zero();
+        if let Some(local) = self.local() {
+            local_result = local.abs_square_sum();
+        }
+
+        let mut global_result = <<Self::T as Scalar>::Real>::zero();
         comm.all_reduce_into(
             &local_result,
             &mut global_result,
@@ -125,11 +116,11 @@ where
     fn norm_1(&self) -> <Self::T as Scalar>::Real {
         let comm = self.index_layout.comm();
 
-        let local_result = self
-            .iter()
-            .fold(<<Self::T as Scalar>::Real as Zero>::zero(), |acc, &elem| {
-                acc + elem.abs()
-            });
+        let mut local_result = <<Self::T as Scalar>::Real>::zero();
+
+        if let Some(local) = self.local() {
+            local_result = local.norm_1();
+        }
 
         let mut global_result = <<Self::T as Scalar>::Real as Zero>::zero();
         comm.all_reduce_into(
@@ -159,10 +150,11 @@ where
     fn norm_inf(&self) -> <Self::T as Scalar>::Real {
         let comm = self.index_layout.comm();
 
-        let local_result = self.iter().fold(
-            <<Self::T as Scalar>::Real as Float>::neg_infinity(),
-            |acc, &elem| <<Self::T as Scalar>::Real as Float>::max(acc, elem.abs()),
-        );
+        let mut local_result = <<Self::T as Scalar>::Real>::zero();
+
+        if let Some(local) = self.local() {
+            local_result = local.norm_inf();
+        }
 
         let mut global_result = <<Self::T as Scalar>::Real as Zero>::zero();
         comm.all_reduce_into(
@@ -173,3 +165,5 @@ where
         global_result
     }
 }
+
+

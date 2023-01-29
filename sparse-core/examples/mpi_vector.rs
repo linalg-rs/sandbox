@@ -1,8 +1,9 @@
 //! Example file for creating vectors.
 
 use sparse_core::distributed::index_layout::DistributedIndexLayout;
+use sparse_traits::linalg::*;
 use sparse_core::distributed::indexable_space::DistributedIndexableVectorSpace;
-use sparse_traits::linalg::{IndexableVector, Inner, NormInf, AbsSquareSum};
+use sparse_traits::linalg::{Inner, NormInf, AbsSquareSum};
 use sparse_traits::Element;
 use sparse_traits::LinearSpace;
 
@@ -16,7 +17,9 @@ fn main() {
 
     let mut vec = space.create_element();
 
-    if let Some(val) = vec.view_mut().get_mut(0) {
+    let vec_impl = vec.view_mut();
+
+    if let Some(val) = vec_impl.view_mut().unwrap().get_mut(0) {
         *val = 0.5;
     }
 

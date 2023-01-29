@@ -13,6 +13,10 @@ impl LocalIndexLayout {
             number_of_global_indices: range.1 - range.0,
         }
     }
+
+    pub fn is_same(&self, other: &LocalIndexLayout) -> bool {
+        std::ptr::eq(self, other)
+    }
 }
 
 impl IndexLayout for LocalIndexLayout {

@@ -1,3 +1,4 @@
+use crate::local::index_layout::LocalIndexLayout;
 use mpi::traits::Communicator;
 use sparse_traits::{IndexLayout, IndexType};
 
@@ -5,6 +6,7 @@ pub struct DistributedIndexLayout<'a, C: Communicator> {
     ranges: Vec<Option<(IndexType, IndexType)>>,
     global_range: (IndexType, IndexType),
     my_rank: IndexType,
+    local_layout: Option<LocalIndexLayout>,
     number_of_global_indices: IndexType,
     comm: &'a C,
 }
@@ -66,10 +68,15 @@ impl<'a, C: Communicator> DistributedIndexLayout<'a, C> {
             }
         }
 
+        let local_layout = match ranges.get(my_rank).unwrap() {
+            Some(range) => Some(LocalIndexLayout::new((0, range.1 - range.0))),
+            None => None,
+        };
         Self {
             ranges,
             global_range: range,
             my_rank,
+            local_layout,
             number_of_global_indices,
             comm,
         }
@@ -77,11 +84,25 @@ impl<'a, C: Communicator> DistributedIndexLayout<'a, C> {
     pub fn comm(&self) -> &C {
         self.comm
     }
+
+    // This method is needed for Distributed vectors to obtain a dummy layout
+    // for the local vector.
+    pub(crate) fn local_layout(&self) -> Option<&LocalIndexLayout> {
+        self.local_layout.as_ref()
+    }
+
+    pub fn is_same(&self, other: &Self) -> bool {
+        std::ptr::eq(self, other)
+    }
 }
 
 impl<'a, C: Communicator> IndexLayout for DistributedIndexLayout<'a, C> {
     fn index_range(&self, rank: IndexType) -> &Option<(IndexType, IndexType)> {
-        assert!(rank < self.comm.size() as IndexType, "No rank with index {} exists.", rank);
+        assert!(
+            rank < self.comm.size() as IndexType,
+            "No rank with index {} exists.",
+            rank
+        );
         self.ranges.get(rank).unwrap()
     }
 
