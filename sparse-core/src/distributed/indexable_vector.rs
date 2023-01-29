@@ -1,11 +1,11 @@
 //! An Indexable Vector is a container whose elements can be 1d indexed.
 use mpi::traits::*;
 use num::{Float, Zero};
-use sparse_traits::types::{Error, Result};
 use sparse_traits::linalg::IndexableVector;
+use sparse_traits::linalg::{AbsSquareSum, Inner, Norm1, Norm2, NormInf};
+use sparse_traits::types::{Error, Result};
 use sparse_traits::Scalar;
 use sparse_traits::{IndexLayout, IndexType};
-use sparse_traits::linalg::{Inner, Norm1, Norm2, NormInf, AbsSquareSum};
 
 use super::index_layout::DistributedIndexLayout;
 
@@ -61,6 +61,10 @@ impl<'a, T: Scalar + Equivalence, C: Communicator> IndexableVector
     unsafe fn get_unchecked_mut(&mut self, index: IndexType) -> &mut Self::T {
         self.data.get_unchecked_mut(index)
     }
+
+    fn new_from(&self) -> Self {
+        Self::new(self.index_layout)
+    }
 }
 
 impl<T: Scalar + Equivalence, C: Communicator> Inner for DistributedIndexableVector<'_, T, C> {
@@ -94,14 +98,14 @@ where
     T::Real: Equivalence,
 {
     type T = T;
-    fn square_sum(&self) -> <Self::T as Scalar>::Real {
+    fn abs_square_sum(&self) -> <Self::T as Scalar>::Real {
         let comm = self.index_layout.comm();
 
-        let local_result =
-            self.iter()
-                .fold(<<Self::T as Scalar>::Real as Zero>::zero(), |acc, &elem| {
-                    acc + elem.square()
-                });
+        let local_result = self
+            .iter()
+            .fold(<<Self::T as Scalar>::Real as Zero>::zero(), |acc, &elem| {
+                acc + elem.square()
+            });
 
         let mut global_result = <<Self::T as Scalar>::Real as Zero>::zero();
         comm.all_reduce_into(
@@ -112,7 +116,6 @@ where
         global_result
     }
 }
-
 
 impl<T: Scalar + Equivalence, C: Communicator> Norm1 for DistributedIndexableVector<'_, T, C>
 where
@@ -122,11 +125,11 @@ where
     fn norm_1(&self) -> <Self::T as Scalar>::Real {
         let comm = self.index_layout.comm();
 
-        let local_result =
-            self.iter()
-                .fold(<<Self::T as Scalar>::Real as Zero>::zero(), |acc, &elem| {
-                    acc + elem.abs()
-                });
+        let local_result = self
+            .iter()
+            .fold(<<Self::T as Scalar>::Real as Zero>::zero(), |acc, &elem| {
+                acc + elem.abs()
+            });
 
         let mut global_result = <<Self::T as Scalar>::Real as Zero>::zero();
         comm.all_reduce_into(
@@ -138,14 +141,13 @@ where
     }
 }
 
-
 impl<T: Scalar + Equivalence, C: Communicator> Norm2 for DistributedIndexableVector<'_, T, C>
 where
     T::Real: Equivalence,
 {
     type T = T;
     fn norm_2(&self) -> <Self::T as Scalar>::Real {
-        Float::sqrt(self.square_sum())
+        Float::sqrt(self.abs_square_sum())
     }
 }
 
@@ -157,8 +159,7 @@ where
     fn norm_inf(&self) -> <Self::T as Scalar>::Real {
         let comm = self.index_layout.comm();
 
-        let local_result =
-        self.iter().fold(
+        let local_result = self.iter().fold(
             <<Self::T as Scalar>::Real as Float>::neg_infinity(),
             |acc, &elem| <<Self::T as Scalar>::Real as Float>::max(acc, elem.abs()),
         );

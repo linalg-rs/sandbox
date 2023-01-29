@@ -1,6 +1,6 @@
 //! This module defines typical traits for linear algebra operations.
 
-use crate::{types::Scalar, IndexLayout};
+use crate::types::Scalar;
 
 /// Inner product with another object.
 pub trait Inner {
@@ -11,7 +11,7 @@ pub trait Inner {
 /// Take the sum of the squares of the absolute values of the entries.
 pub trait AbsSquareSum {
     type T: Scalar;
-    fn square_sum(&self) -> <Self::T as Scalar>::Real;
+    fn abs_square_sum(&self) -> <Self::T as Scalar>::Real;
 }
 
 /// Return the 1-Norm (Sum of absolute values of the entries).
@@ -51,18 +51,7 @@ pub trait ScalarMult {
 }
 
 /// Compute self -> alpha * other + self.
-pub trait Axpy {
+pub trait MultSumInto {
     type T: Scalar;
-    fn axpy(&mut self, other: &Self, scalar: Self::T) -> crate::types::Result<()>;
-}
-
-/// Create a new vector and fill with scalar.
-pub trait CreateFrom<'a> {
-    type T: Scalar;
-    type Ind: IndexLayout;
-    fn create_from<'b>(index_layout: &'b Self::Ind, scalar: Self::T) -> Self
-    where
-        'b: 'a;
-    // We require that the lifetiime 'b of the index layout lives at least as long as Self.
-    // We cannot write 'b: Self and therefore need to introduce the lifetime parameter 'a;
+    fn mult_sum_into(&mut self, other: &Self, scalar: Self::T) -> crate::types::Result<()>;
 }

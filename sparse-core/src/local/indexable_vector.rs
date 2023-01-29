@@ -60,6 +60,10 @@ impl<T: Scalar> IndexableVector for LocalIndexableVector<'_, T> {
     fn len(&self) -> IndexType {
         self.index_layout.number_of_global_indices()
     }
+
+    fn new_from(&self) -> Self {
+        Self::new(&self.index_layout)
+    }
 }
 
 impl<T: Scalar> Inner for LocalIndexableVector<'_, T> {
@@ -80,7 +84,7 @@ impl<T: Scalar> Inner for LocalIndexableVector<'_, T> {
 
 impl<T: Scalar> AbsSquareSum for LocalIndexableVector<'_, T> {
     type T = T;
-    fn square_sum(&self) -> <Self::T as Scalar>::Real {
+    fn abs_square_sum(&self) -> <Self::T as Scalar>::Real {
         self.iter()
             .fold(<<Self::T as Scalar>::Real>::zero(), |acc, &elem| {
                 acc + elem.square()
@@ -101,7 +105,7 @@ impl<T: Scalar> Norm1 for LocalIndexableVector<'_, T> {
 impl<T: Scalar> Norm2 for LocalIndexableVector<'_, T> {
     type T = T;
     fn norm_2(&self) -> <Self::T as Scalar>::Real {
-        <<Self::T as Scalar>::Real as Float>::sqrt(self.square_sum())
+        <<Self::T as Scalar>::Real as Float>::sqrt(self.abs_square_sum())
     }
 }
 
@@ -152,30 +156,228 @@ impl<T: Scalar> ScalarMult for LocalIndexableVector<'_, T> {
     }
 }
 
-impl<T: Scalar> Axpy for LocalIndexableVector<'_, T> {
+impl<T: Scalar> MultSumInto for LocalIndexableVector<'_, T> {
     type T = T;
-    fn axpy(&mut self, other: &Self, scalar: Self::T) -> sparse_traits::types::Result<()> {
+    fn mult_sum_into(&mut self, other: &Self, scalar: Self::T) -> sparse_traits::types::Result<()> {
         if self.len() != other.len() {
-            Err(Error::OperationFailed)
-        } else {
-            for (first, second) in self.iter_mut().zip(other.iter()) {
-                *first += scalar * *second;
-            }
-            Ok(())
+            return Err(Error::OperationFailed);
         }
+        if scalar == T::zero() {
+            return Ok(());
+        }
+        if scalar == T::one() {
+            for (first, second) in self.iter_mut().zip(other.iter()) {
+                *first += *second;
+            }
+            return Ok(());
+        }
+        for (first, second) in self.iter_mut().zip(other.iter()) {
+            *first += scalar * *second;
+        }
+        return Ok(());
     }
 }
 
-impl<'a, T: Scalar> CreateFrom<'a> for LocalIndexableVector<'a, T> {
-    type T = T;
-    type Ind = super::index_layout::LocalIndexLayout;
-    fn create_from<'b>(index_layout: &'b Self::Ind, scalar: Self::T) -> Self
-    where
-        'b: 'a,
-    {
-        Self {
-            data: vec![scalar; index_layout.number_of_global_indices()],
-            index_layout,
-        }
+#[cfg(test)]
+mod tests {
+
+    use super::*;
+    use cauchy::c64;
+    use float_eq;
+
+    const VEC_SIZE: IndexType = 2;
+
+    fn index_layout() -> LocalIndexLayout {
+        LocalIndexLayout::new((0, VEC_SIZE))
+    }
+
+    fn new_vec<'a, T: Scalar>(index_layout: &'a LocalIndexLayout) -> LocalIndexableVector<'a, T> {
+        LocalIndexableVector::<'_, T>::new(index_layout)
+    }
+
+    #[test]
+    fn test_inner() {
+        let index_layout = index_layout();
+
+        let mut vec1 = new_vec::<c64>(&index_layout);
+        let mut vec2 = new_vec::<c64>(&index_layout);
+
+        *vec1.get_mut(0).unwrap() = c64::new(1.0, 2.0);
+        *vec1.get_mut(1).unwrap() = c64::new(0.5, 1.0);
+
+        *vec2.get_mut(0).unwrap() = c64::new(2.0, 3.0);
+        *vec2.get_mut(1).unwrap() = c64::new(0.4, 1.5);
+
+        let actual = vec1.inner(&vec2).unwrap();
+
+        let expected =
+            c64::new(1.0, 2.0) * c64::new(2.0, -3.0) + c64::new(0.5, 1.0) * c64::new(0.4, -1.5);
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn abs_square_sum() {
+        let index_layout = index_layout();
+
+        let mut vec = new_vec::<c64>(&index_layout);
+
+        let val1 = c64::new(1.0, 2.0);
+        let val2 = c64::new(1.5, 3.0);
+
+        *vec.get_mut(0).unwrap() = val1;
+        *vec.get_mut(1).unwrap() = val2;
+
+        let actual = vec.abs_square_sum();
+        let expected = val1.abs() * val1.abs() + val2.abs() * val2.abs();
+
+        float_eq::assert_float_eq!(actual, expected, ulps_all <= 4);
+    }
+
+    #[test]
+    fn norm_1() {
+        let index_layout = index_layout();
+
+        let mut vec = new_vec::<c64>(&index_layout);
+
+        let val1 = c64::new(1.0, 2.0);
+        let val2 = c64::new(1.5, 3.0);
+
+        *vec.get_mut(0).unwrap() = val1;
+        *vec.get_mut(1).unwrap() = val2;
+
+        let actual = vec.norm_1();
+        let expected = val1.abs() + val2.abs();
+
+        float_eq::assert_float_eq!(actual, expected, ulps_all <= 4);
+    }
+
+    #[test]
+    fn norm_2() {
+        let index_layout = index_layout();
+
+        let mut vec = new_vec::<c64>(&index_layout);
+
+        let val1 = c64::new(1.0, 2.0);
+        let val2 = c64::new(1.5, 3.0);
+
+        *vec.get_mut(0).unwrap() = val1;
+        *vec.get_mut(1).unwrap() = val2;
+
+        let actual = vec.norm_2();
+        let expected = (val1.abs() * val1.abs() + val2.abs() * val2.abs()).sqrt();
+
+        float_eq::assert_float_eq!(actual, expected, ulps_all <= 4);
+    }
+
+    #[test]
+    fn norm_inf() {
+        let index_layout = index_layout();
+
+        let mut vec = new_vec::<c64>(&index_layout);
+
+        let val1 = c64::new(1.0, 2.0);
+        let val2 = c64::new(1.5, 3.0);
+
+        *vec.get_mut(0).unwrap() = val1;
+        *vec.get_mut(1).unwrap() = val2;
+
+        let actual = vec.norm_inf();
+        let expected = val2.abs();
+
+        float_eq::assert_float_eq!(actual, expected, ulps_all <= 4);
+    }
+
+    #[test]
+    fn swap() {
+        let index_layout = index_layout();
+
+        let mut vec1 = new_vec::<c64>(&index_layout);
+        let mut vec2 = new_vec::<c64>(&index_layout);
+
+        *vec1.get_mut(0).unwrap() = c64::new(1.0, 2.0);
+        *vec1.get_mut(1).unwrap() = c64::new(0.5, 1.0);
+
+        *vec2.get_mut(0).unwrap() = c64::new(2.0, 3.0);
+        *vec2.get_mut(1).unwrap() = c64::new(0.4, 1.5);
+
+        vec1.swap(&mut vec2).unwrap();
+
+        assert_eq!(*vec1.get(0).unwrap(), c64::new(2.0, 3.0));
+        assert_eq!(*vec2.get(1).unwrap(), c64::new(0.5, 1.0));
+    }
+
+    #[test]
+    fn mult_sum_into() {
+        let index_layout = index_layout();
+
+        let mut vec1 = new_vec::<c64>(&index_layout);
+        let mut vec2 = new_vec::<c64>(&index_layout);
+
+        *vec1.get_mut(0).unwrap() = c64::new(1.0, 2.0);
+        *vec1.get_mut(1).unwrap() = c64::new(0.5, 1.0);
+
+        *vec2.get_mut(0).unwrap() = c64::new(2.0, 3.0);
+        *vec2.get_mut(1).unwrap() = c64::new(0.4, 1.5);
+
+        // Test scalar = 0
+
+        let _ = vec1.mult_sum_into(&vec2, c64::new(0.0, 0.0));
+
+        assert_eq!(*vec1.get(0).unwrap(), c64::new(1.0, 2.0));
+        assert_eq!(*vec1.get(1).unwrap(), c64::new(0.5, 1.0));
+
+        *vec1.get_mut(0).unwrap() = c64::new(1.0, 2.0);
+        *vec1.get_mut(1).unwrap() = c64::new(0.5, 1.0);
+
+        // Test scalar = 1
+        let _ = vec1.mult_sum_into(&vec2, c64::new(1.0, 0.0));
+
+        assert_eq!(
+            *vec1.get(0).unwrap(),
+            c64::new(1.0, 2.0) + c64::new(2.0, 3.0)
+        );
+        assert_eq!(
+            *vec1.get(1).unwrap(),
+            c64::new(0.5, 1.0) + c64::new(0.4, 1.5)
+        );
+
+        *vec1.get_mut(0).unwrap() = c64::new(1.0, 2.0);
+        *vec1.get_mut(1).unwrap() = c64::new(0.5, 1.0);
+
+        // Test scalar = 1.3
+        let _ = vec1.mult_sum_into(&vec2, c64::new(1.3, 0.0));
+
+        assert_eq!(
+            *vec1.get(0).unwrap(),
+            c64::new(1.0, 2.0) + c64::new(1.3, 0.0) * c64::new(2.0, 3.0)
+        );
+        assert_eq!(
+            *vec1.get(1).unwrap(),
+            c64::new(0.5, 1.0) + c64::new(1.3, 0.0) * c64::new(0.4, 1.5)
+        );
+    }
+    #[test]
+    fn scalar_mult() {
+        let index_layout = index_layout();
+
+        let mut vec = new_vec::<c64>(&index_layout);
+
+        let val1 = c64::new(1.0, 2.0);
+        let val2 = c64::new(1.5, 3.0);
+
+        *vec.get_mut(0).unwrap() = val1;
+        *vec.get_mut(1).unwrap() = val2;
+
+        vec.scalar_mult(c64::new(2.1, 3.5));
+
+        assert_eq!(
+            *vec.get(0).unwrap(),
+            c64::new(2.1, 3.5) * c64::new(1.0, 2.0)
+        );
+        assert_eq!(
+            *vec.get(1).unwrap(),
+            c64::new(2.1, 3.5) * c64::new(1.5, 3.0)
+        );
     }
 }

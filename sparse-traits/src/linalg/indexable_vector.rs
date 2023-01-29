@@ -28,6 +28,8 @@ pub trait IndexableVector {
     fn len(&self) -> IndexType;
 
     fn index_layout(&self) -> &Self::Ind;
-}
 
+    fn new_from(&self) -> Self;
+
+}
 

@@ -21,6 +21,6 @@ fn main() {
     }
 
     println!("Inner: {}", vec.view().inner(&vec.view()).unwrap());
-    println!("Square sum: {}", vec.view().square_sum());
+    println!("Square sum: {}", vec.view().abs_square_sum());
     println!("Inf norm: {}", vec.view().norm_inf());
 }

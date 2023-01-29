@@ -3,6 +3,7 @@ use sparse_traits::{IndexLayout, IndexType};
 
 pub struct DistributedIndexLayout<'a, C: Communicator> {
     ranges: Vec<Option<(IndexType, IndexType)>>,
+    global_range: (IndexType, IndexType),
     my_rank: IndexType,
     number_of_global_indices: IndexType,
     comm: &'a C,
@@ -67,6 +68,7 @@ impl<'a, C: Communicator> DistributedIndexLayout<'a, C> {
 
         Self {
             ranges,
+            global_range: range,
             my_rank,
             number_of_global_indices,
             comm,
@@ -79,6 +81,7 @@ impl<'a, C: Communicator> DistributedIndexLayout<'a, C> {
 
 impl<'a, C: Communicator> IndexLayout for DistributedIndexLayout<'a, C> {
     fn index_range(&self, rank: IndexType) -> &Option<(IndexType, IndexType)> {
+        assert!(rank < self.comm.size() as IndexType, "No rank with index {} exists.", rank);
         self.ranges.get(rank).unwrap()
     }
 
@@ -98,11 +101,40 @@ impl<'a, C: Communicator> IndexLayout for DistributedIndexLayout<'a, C> {
         self.number_of_global_indices
     }
 
-    fn local2global(&self, index: IndexType) -> Option<IndexType> {
+    fn global_range(&self) -> &(IndexType, IndexType) {
+        &self.global_range
+    }
+
+    fn map(&self, index: IndexType) -> Option<IndexType> {
         if index < self.number_of_local_indices() {
             Some(self.local_range().unwrap().0 + index)
         } else {
             None
         }
+    }
+}
+
+#[cfg(test)]
+mod test {
+
+    use super::*;
+    use mpi;
+
+    #[test]
+    fn test_distributed_index_set() {
+        let universe = mpi::initialize().unwrap();
+        let world = universe.world();
+
+        let index_layout = DistributedIndexLayout::new((3, 14), &world);
+
+        // Test that the range is correct on rank 0
+        assert_eq!(index_layout.index_range(0).unwrap(), (3, 14));
+
+        // Test that the number of global indices is correct.
+        assert_eq!(index_layout.number_of_global_indices(), 11);
+
+        // Test that map works
+
+        assert_eq!(index_layout.map(2).unwrap(), 5);
     }
 }
