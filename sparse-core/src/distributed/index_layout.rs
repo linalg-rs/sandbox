@@ -1,5 +1,6 @@
 use crate::local::index_layout::LocalIndexLayout;
 use mpi::traits::Communicator;
+use mpi::Count;
 use sparse_traits::{IndexLayout, IndexType};
 
 pub struct DistributedIndexLayout<'a, C: Communicator> {
@@ -8,8 +9,8 @@ pub struct DistributedIndexLayout<'a, C: Communicator> {
     my_rank: IndexType,
     local_layout: Option<LocalIndexLayout>,
     number_of_global_indices: IndexType,
-    counts: Vec<IndexType>,
-    displacements: Vec<IndexType>,
+    counts: Vec<Count>,
+    displacements: Vec<Count>,
     comm: &'a C,
 }
 
@@ -17,8 +18,8 @@ impl<'a, C: Communicator> DistributedIndexLayout<'a, C> {
     pub fn new(range: (IndexType, IndexType), comm: &'a C) -> Self {
         let comm_size = comm.size() as IndexType;
         let my_rank = comm.rank() as IndexType;
-        let mut counts = vec![0 as IndexType; comm_size as usize];
-        let mut displacements =  vec![0 as IndexType; comm_size as usize];
+        let mut counts = vec![0 as Count; comm_size as usize];
+        let mut displacements =  vec![0 as Count; comm_size as usize];
 
         let mut ranges = Vec::<Option<(IndexType, IndexType)>>::with_capacity(comm_size as usize);
 
@@ -41,12 +42,12 @@ impl<'a, C: Communicator> DistributedIndexLayout<'a, C> {
 
             for index in 0..number_of_global_indices {
                 counts[index] = 1;
-                displacements[index] = index;
+                displacements[index] = index as Count;
             }
 
             for index in number_of_global_indices..comm_size {
                 counts[index] = 0;
-                displacements[index] = number_of_global_indices;
+                displacements[index] = number_of_global_indices as Count;
             }
 
         } else {
@@ -79,8 +80,8 @@ impl<'a, C: Communicator> DistributedIndexLayout<'a, C> {
                     // add chunk size indices to each rank.
                     new_count = count + chunk;
                 }
-                counts[index] = new_count - count;
-                displacements[index] = count;
+                counts[index] = (new_count - count) as Count;
+                displacements[index] = count as Count;
                 ranges.push(Some((count, new_count)));
                 count = new_count;
             }
@@ -105,11 +106,11 @@ impl<'a, C: Communicator> DistributedIndexLayout<'a, C> {
         self.comm
     }
 
-    pub fn counts(&self) -> &Vec<IndexType> {
+    pub fn counts(&self) -> &Vec<Count> {
         &self.counts
     }
 
-    pub fn displacements(&self) -> &Vec<IndexType> {
+    pub fn displacements(&self) -> &Vec<Count> {
         &self.displacements
     }
 

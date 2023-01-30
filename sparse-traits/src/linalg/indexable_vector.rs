@@ -33,6 +33,8 @@ pub trait IndexableVectorView {
 
     fn len(&self) -> IndexType;
 
+    fn data(&self) -> &[Self::T];
+
 }
 
 pub trait IndexableVectorViewMut: IndexableVectorView {
@@ -45,6 +47,8 @@ pub trait IndexableVectorViewMut: IndexableVectorView {
     fn get_mut(&mut self, index: IndexType) -> Option<&mut Self::T>;
 
     unsafe fn get_unchecked_mut(&mut self, index: IndexType) -> &mut Self::T;
+
+    fn data_mut(&mut self) -> &mut [Self::T];
 
 }
 

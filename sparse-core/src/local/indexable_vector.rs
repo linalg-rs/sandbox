@@ -73,6 +73,10 @@ macro_rules! implement_view {
             fn len(&self) -> IndexType {
                 self.data.len()
             }
+
+            fn data(&self) -> &[Self::T] {
+                self.data.as_slice()
+            }
         }
     };
 }
@@ -92,6 +96,10 @@ impl<T: Scalar> IndexableVectorViewMut for LocalIndexableVectorViewMut<'_, T> {
 
     fn iter_mut(&mut self) -> Self::IterMut<'_> {
         self.data.as_mut_slice().iter_mut()
+    }
+
+    fn data_mut(&mut self) -> &mut [Self::T] {
+        self.data.as_mut_slice()
     }
 }
 

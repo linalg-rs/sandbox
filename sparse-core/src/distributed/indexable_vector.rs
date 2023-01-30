@@ -2,13 +2,13 @@
 use crate::local::indexable_vector::{
     LocalIndexableVector, LocalIndexableVectorView, LocalIndexableVectorViewMut,
 };
-use crate::tools::has_unique_some;
+use mpi::datatype::Partition;
 use mpi::traits::*;
 use num::{Float, Zero};
-use sparse_traits::{linalg::*, IndexLayout};
-use sparse_traits::linalg::{AbsSquareSum, Inner, Norm1, Norm2, NormInf};
+use sparse_traits::linalg::*;
+use sparse_traits::linalg::{Inner, Norm1, Norm2, NormInf};
 use sparse_traits::types::{Error, Result};
-use sparse_traits::{IndexType, Scalar};
+use sparse_traits::{linalg::IndexableVectorView, IndexLayout, Scalar};
 
 use super::index_layout::DistributedIndexLayout;
 
@@ -32,26 +32,41 @@ impl<'a, T: Scalar + Equivalence, C: Communicator> DistributedIndexableVector<'a
         self.local.as_ref()
     }
 
-    pub fn fill_from(&self, other: &Option<LocalIndexableVector<T>>) -> Result<()> {
-        let root: i32;
+    pub fn fill_from_root(&mut self, other: &Option<LocalIndexableVector<T>>) -> Result<()> {
+        let comm = self.index_layout().comm().duplicate();
+        let counts = self.index_layout().counts().as_slice();
+        let displacements = self.index_layout().displacements().as_slice();
+        let global_dim = self.index_layout().number_of_global_indices();
+        let mut recvbuf = vec![T::zero(); self.index_layout().number_of_local_indices()];
 
-        if let Some(rank) = has_unique_some(other, self.index_layout().comm()) {
-            root = rank
+        let root_process = comm.process_at_rank(0);
+        if comm.rank() == 0 {
+            assert!(other.is_some(), "`other` has a `none` value.");
+
+            let local_vector = other.as_ref().unwrap();
+
+            let local_dim = local_vector.index_layout().number_of_global_indices();
+
+            assert_eq!(
+                local_dim, global_dim,
+                "Dimension of local vector {} does not match dimension of distributed vector {}",
+                local_dim, global_dim
+            );
+
+            let view = local_vector.view().unwrap();
+            let data = view.data().as_ref();
+            let partition = Partition::new(data, counts, displacements);
+
+            root_process.scatter_varcount_into_root(&partition, &mut recvbuf);
+
         } else {
-            return Err(Error::OperationFailed);
+            assert!(other.is_none(), "`other` has a `Some` value.");
+            root_process.scatter_varcount_into(&mut recvbuf);
+
         }
 
-        if root != 0 {
-            return Err(Error::OperationFailed);
-        }
-
-        // Now broadcast the values
-        
-        if self.index_layout().comm().rank() == root{
-            // Broadcast from rank 0
-        } else {
-            // Broadcast into other ranks
-
+        if let Some(mut view) = self.view_mut() {
+            view.data_mut().clone_from_slice(&recvbuf);
         }
 
         Ok(())
