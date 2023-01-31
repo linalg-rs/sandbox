@@ -6,7 +6,7 @@ use mpi::datatype::Partition;
 use mpi::traits::*;
 use num::{Float, Zero};
 use sparse_traits::linalg::*;
-use sparse_traits::linalg::{Inner, Norm1, Norm2, NormInf};
+use sparse_traits::linalg::{Inner, Norm1, Norm2, NormInfty};
 use sparse_traits::types::{Error, Result};
 use sparse_traits::{linalg::IndexableVectorView, IndexLayout, Scalar};
 
@@ -183,18 +183,18 @@ where
     }
 }
 
-impl<T: Scalar + Equivalence, C: Communicator> NormInf for DistributedIndexableVector<'_, T, C>
+impl<T: Scalar + Equivalence, C: Communicator> NormInfty for DistributedIndexableVector<'_, T, C>
 where
     T::Real: Equivalence,
 {
     type T = T;
-    fn norm_inf(&self) -> <Self::T as Scalar>::Real {
+    fn norm_infty(&self) -> <Self::T as Scalar>::Real {
         let comm = self.index_layout.comm();
 
         let mut local_result = <<Self::T as Scalar>::Real>::zero();
 
         if let Some(local) = self.local() {
-            local_result = local.norm_inf();
+            local_result = local.norm_infty();
         }
 
         let mut global_result = <<Self::T as Scalar>::Real as Zero>::zero();

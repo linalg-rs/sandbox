@@ -27,9 +27,9 @@ pub trait Norm2 {
 }
 
 /// Return the supremum norm (largest absolute value of the entries).
-pub trait NormInf {
+pub trait NormInfty {
     type T: Scalar;
-    fn norm_inf(&self) -> <Self::T as Scalar>::Real;
+    fn norm_infty(&self) -> <Self::T as Scalar>::Real;
 }
 
 /// Swap entries with another vector.

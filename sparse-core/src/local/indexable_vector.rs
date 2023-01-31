@@ -152,9 +152,9 @@ impl<T: Scalar> Norm2 for LocalIndexableVector<'_, T> {
     }
 }
 
-impl<T: Scalar> NormInf for LocalIndexableVector<'_, T> {
+impl<T: Scalar> NormInfty for LocalIndexableVector<'_, T> {
     type T = T;
-    fn norm_inf(&self) -> <Self::T as Scalar>::Real {
+    fn norm_infty(&self) -> <Self::T as Scalar>::Real {
         self.view().unwrap().iter().fold(
             <<Self::T as Scalar>::Real as Float>::neg_infinity(),
             |acc, &elem| <<Self::T as Scalar>::Real as Float>::max(acc, elem.abs()),
@@ -336,7 +336,7 @@ mod tests {
         *vec.view_mut().unwrap().get_mut(0).unwrap() = val1;
         *vec.view_mut().unwrap().get_mut(1).unwrap() = val2;
 
-        let actual = vec.norm_inf();
+        let actual = vec.norm_infty();
         let expected = val2.abs();
 
         float_eq::assert_float_eq!(actual, expected, ulps_all <= 4);

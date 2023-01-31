@@ -35,7 +35,7 @@ fn main() {
             *view.get_mut(index).unwrap() = index as f64;
         }
 
-        println!("Local inf norm: {}", local_vec.norm_inf());
+        println!("Local inf norm: {}", local_vec.norm_infty());
         println!("Local inner: {}", local_vec.inner(&local_vec).unwrap());
 
         let _ = vec_impl.fill_from_root(&Some(local_vec));
@@ -44,7 +44,7 @@ fn main() {
     }
 
     let inner = vec.view().inner(&vec.view()).unwrap();
-    let inf_norm = vec.view().norm_inf();
+    let inf_norm = vec.view().norm_infty();
 
     if rank == 0 {
         println!("Inner: {}", &inner);
