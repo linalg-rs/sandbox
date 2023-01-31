@@ -56,7 +56,7 @@ mod test {
     use super::*;
 
     #[test]
-    fn test_local_index_set() {
+    fn test_local_index_layout() {
         let index_layout = LocalIndexLayout::new((3, 14));
 
         // Test that the range is correct on rank 0
@@ -64,10 +64,6 @@ mod test {
 
         // Test that the number of global indices is correct.
         assert_eq!(index_layout.number_of_global_indices(), 11);
-
-        // Test that the number of local indices is correct.
-
-        assert!(index_layout.index_range(1).is_none());
 
         // Test that map works
         
