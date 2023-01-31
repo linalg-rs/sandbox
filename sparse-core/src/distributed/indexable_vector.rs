@@ -1,14 +1,13 @@
 //! An Indexable Vector is a container whose elements can be 1d indexed.
-use crate::local::indexable_vector::{
-    LocalIndexableVector, LocalIndexableVectorView, LocalIndexableVectorViewMut,
-};
+use crate::local::indexable_vector::*;
 use mpi::datatype::Partition;
 use mpi::traits::*;
 use num::{Float, Zero};
 use sparse_traits::linalg::*;
 use sparse_traits::linalg::{Inner, Norm1, Norm2, NormInf};
 use sparse_traits::types::{Error, Result};
-use sparse_traits::{linalg::IndexableVectorView, IndexLayout, Scalar};
+use sparse_traits::{linalg::*, IndexLayout, Scalar};
+use std::sync::RwLock;
 
 use super::index_layout::DistributedIndexLayout;
 
@@ -32,69 +31,61 @@ impl<'a, T: Scalar + Equivalence, C: Communicator> DistributedIndexableVector<'a
         self.local.as_ref()
     }
 
-    pub fn fill_from_root(&mut self, other: &Option<LocalIndexableVector<T>>) -> Result<()> {
-        let comm = self.index_layout().comm().duplicate();
-        let counts = self.index_layout().counts().as_slice();
-        let displacements = self.index_layout().displacements().as_slice();
-        let global_dim = self.index_layout().number_of_global_indices();
-        let mut recvbuf = vec![T::zero(); self.index_layout().number_of_local_indices()];
-
-        let root_process = comm.process_at_rank(0);
-        if comm.rank() == 0 {
-            assert!(other.is_some(), "`other` has a `none` value.");
-
-            let local_vector = other.as_ref().unwrap();
-
-            let local_dim = local_vector.index_layout().number_of_global_indices();
-
-            assert_eq!(
-                local_dim, global_dim,
-                "Dimension of local vector {} does not match dimension of distributed vector {}",
-                local_dim, global_dim
-            );
-
-            let view = local_vector.view().unwrap();
-            let data = view.data().as_ref();
-            let partition = Partition::new(data, counts, displacements);
-
-            root_process.scatter_varcount_into_root(&partition, &mut recvbuf);
-
-        } else {
-            assert!(other.is_none(), "`other` has a `Some` value.");
-            root_process.scatter_varcount_into(&mut recvbuf);
-
-        }
-
-        if let Some(mut view) = self.view_mut() {
-            view.data_mut().clone_from_slice(&recvbuf);
-        }
-
-        Ok(())
-    }
+    // pub fn fill_from_root(&mut self, other: &Option<LocalIndexableVector<T>>) -> Result<()> {
+    //     let comm = self.index_layout().comm().duplicate();
+    //     let counts = self.index_layout().counts().as_slice();
+    //     let displacements = self.index_layout().displacements().as_slice();
+    //     let global_dim = self.index_layout().number_of_global_indices();
+    //     let mut recvbuf = vec![T::zero(); self.index_layout().number_of_local_indices()];
+    //
+    //     let root_process = comm.process_at_rank(0);
+    //     if comm.rank() == 0 {
+    //         assert!(other.is_some(), "`other` has a `none` value.");
+    //
+    //         let local_vector = other.as_ref().unwrap();
+    //
+    //         let local_dim = local_vector.index_layout().number_of_global_indices();
+    //
+    //         assert_eq!(
+    //             local_dim, global_dim,
+    //             "Dimension of local vector {} does not match dimension of distributed vector {}",
+    //             local_dim, global_dim
+    //         );
+    //
+    //         let view = local_vector.view().unwrap();
+    //         let data = view.data().as_ref();
+    //         let partition = Partition::new(data, counts, displacements);
+    //
+    //         root_process.scatter_varcount_into_root(&partition, &mut recvbuf);
+    //
+    //     } else {
+    //         assert!(other.is_none(), "`other` has a `Some` value.");
+    //         root_process.scatter_varcount_into(&mut recvbuf);
+    //
+    //     }
+    //
+    //     if let Some(mut view) = self.view_mut() {
+    //         view.data_mut().clone_from_slice(&recvbuf);
+    //     }
+    //
+    //     Ok(())
+    // }
 }
 
 impl<'a, T: Scalar + Equivalence, C: Communicator> IndexableVector
     for DistributedIndexableVector<'a, T, C>
 {
     type T = T;
-    type View<'b> = LocalIndexableVectorView<'b, T> where Self: 'b;
-    type ViewMut<'b> = LocalIndexableVectorViewMut<'b, T> where Self: 'b;
+    type Data = LocalIndexableVectorData<T>;
     type Ind = DistributedIndexLayout<'a, C>;
 
     fn index_layout(&self) -> &Self::Ind {
         &self.index_layout
     }
 
-    fn view<'b>(&'b self) -> Option<Self::View<'b>> {
-        match &self.local {
-            Some(local_vec) => Some(local_vec.view().unwrap()),
-            None => None,
-        }
-    }
-
-    fn view_mut<'b>(&'b mut self) -> Option<Self::ViewMut<'b>> {
-        match &mut self.local {
-            Some(local_vec) => Some(local_vec.view_mut().unwrap()),
+    fn data(&self) -> Option<&RwLock<Self::Data>> {
+        match self.local() {
+            Some(local_vec) => local_vec.data(),
             None => None,
         }
     }

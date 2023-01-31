@@ -2,24 +2,27 @@
 
 use crate::types::{IndexType, Scalar};
 use crate::IndexLayout;
+use std::sync::{RwLock, RwLockReadGuard, RwLockWriteGuard, TryLockResult};
 
 pub trait IndexableVector {
-
     type T: Scalar;
     type Ind: IndexLayout;
 
-    type View<'a>: IndexableVectorView where Self: 'a;
-    type ViewMut<'a>: IndexableVectorView where Self: 'a;
+    type Data: IndexableVectorData;
 
-    fn view<'a>(&'a self) -> Option<Self::View<'a>>;
-    fn view_mut<'a>(&'a mut self) -> Option<Self::ViewMut<'a>>;
+    fn data(&self) -> Option<&RwLock<Self::Data>>;
+
+    fn try_read(&self) -> TryLockResult<RwLockReadGuard<'_, Self::Data>> {
+        self.data().unwrap().try_read()
+    }
+    fn try_write(&self) -> TryLockResult<RwLockWriteGuard<'_, Self::Data>> {
+        self.data().unwrap().try_write()
+    }
 
     fn index_layout(&self) -> &Self::Ind;
-
 }
 
-
-pub trait IndexableVectorView {
+pub trait IndexableVectorData {
     type T: Scalar;
     type Iter<'a>: std::iter::Iterator<Item = &'a Self::T>
     where
@@ -34,10 +37,9 @@ pub trait IndexableVectorView {
     fn len(&self) -> IndexType;
 
     fn data(&self) -> &[Self::T];
-
 }
 
-pub trait IndexableVectorViewMut: IndexableVectorView {
+pub trait IndexableVectorDataMut: IndexableVectorData {
     type IterMut<'a>: std::iter::Iterator<Item = &'a mut Self::T>
     where
         Self: 'a;
@@ -49,6 +51,4 @@ pub trait IndexableVectorViewMut: IndexableVectorView {
     unsafe fn get_unchecked_mut(&mut self, index: IndexType) -> &mut Self::T;
 
     fn data_mut(&mut self) -> &mut [Self::T];
-
 }
-
