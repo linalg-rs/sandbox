@@ -1,11 +1,12 @@
 use super::LinearSpace;
 use crate::types::IndexType;
-use crate::IndexSet;
+use crate::IndexLayout;
 
-pub trait IndexableVectorSpace: LinearSpace {
+pub trait IndexableSpace: LinearSpace {
+    type Ind: IndexLayout;
     fn dimension(&self) -> IndexType {
-        self.index_set().number_of_global_indices()
+        self.index_layout().number_of_global_indices()
     }
 
-    fn index_set(&self) -> &dyn IndexSet;
+    fn index_layout(&self) -> &Self::Ind;
 }

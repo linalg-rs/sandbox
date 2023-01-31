@@ -13,7 +13,7 @@ struct SimpleSpace;
 
 impl LinearSpace for SimpleSpace {
     type F = f64;
-    type E = Vec;
+    type E<'a> = Vec;
 }
 
 struct View<'a> {

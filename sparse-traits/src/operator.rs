@@ -50,7 +50,7 @@ mod tests {
     struct SimpleSpace;
     impl LinearSpace for SimpleSpace {
         type F = f64;
-        type E = SimpleVector;
+        type E<'a> = SimpleVector;
     }
 
     #[derive(Debug)]
@@ -71,14 +71,14 @@ mod tests {
 
     impl Element for SimpleVector {
         type Space = SimpleSpace;
-        type View<'a> = View<'a> where Self: 'a;
-        type ViewMut<'a> = View<'a> where Self: 'a;
+        type View<'b> = View<'b> where Self: 'b;
+        type ViewMut<'b> = View<'b> where Self: 'b;
 
-        fn view<'a>(&'a self) -> Self::View<'a> {
+        fn view<'b>(&'b self) -> Self::View<'b> {
             View::new()
         }
 
-        fn view_mut<'a>(&'a mut self) -> Self::View<'a> {
+        fn view_mut<'b>(&'b mut self) -> Self::View<'b> {
             View::new()
         }
     }

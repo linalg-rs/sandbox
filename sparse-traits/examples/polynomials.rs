@@ -4,7 +4,7 @@ use std::fmt::Debug;
 pub struct PolynomialSpace;
 impl LinearSpace for PolynomialSpace {
     type F = f64;
-    type E = Polynomial;
+    type E<'a> = Polynomial;
 }
 
 #[derive(Debug)]
@@ -36,15 +36,15 @@ pub struct PolynomialViewMut<'a> {
 
 impl Element for Polynomial {
     type Space = PolynomialSpace;
-    type View<'a> = PolynomialView<'a> where Self: 'a ;
-    type ViewMut<'a> = PolynomialViewMut<'a> where Self: 'a;
+    type View<'b> = PolynomialView<'b> where Self: 'b ;
+    type ViewMut<'b> = PolynomialViewMut<'b> where Self: 'b;
 
-    fn view<'a>(&'a self) -> Self::View<'a> {
+    fn view<'b>(&'b self) -> Self::View<'b> {
         PolynomialView {
             monomial_coeffs: &self.monomial_coeffs,
         }
     }
-    fn view_mut<'a>(&'a mut self) -> PolynomialViewMut<'a> {
+    fn view_mut<'b>(&'b mut self) -> PolynomialViewMut<'b> {
         PolynomialViewMut {
             monomial_coeffs: &mut self.monomial_coeffs,
         }
@@ -54,7 +54,7 @@ impl Element for Polynomial {
 pub struct PointwiseEvaluatorSpace;
 impl LinearSpace for PointwiseEvaluatorSpace {
     type F = f64;
-    type E = PointwiseEvaluate;
+    type E<'a> = PointwiseEvaluate;
 }
 impl DualSpace for PointwiseEvaluatorSpace {
     type Space = PolynomialSpace;

@@ -1,6 +1,6 @@
 pub mod distributed;
-pub mod finite_vector;
 pub mod local;
+pub mod tools;
 
 #[cfg(test)]
 mod tests {}
