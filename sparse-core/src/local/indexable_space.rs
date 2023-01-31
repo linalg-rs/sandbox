@@ -72,8 +72,8 @@ impl<T: Scalar> IndexableSpace for LocalIndexableVectorSpace<T> {
 impl<T: Scalar> InnerProductSpace for LocalIndexableVectorSpace<T> {
     fn inner<'a>(
         &self,
-        x: &sparse_traits::ElementView<'a, 'a, Self>,
-        other: &sparse_traits::ElementView<'a, 'a, Self>,
+        x: &sparse_traits::ElementView<'a, Self>,
+        other: &sparse_traits::ElementView<'a, Self>,
     ) -> sparse_traits::Result<Self::F> where Self: 'a{
         x.inner(other)
     }
@@ -81,7 +81,7 @@ impl<T: Scalar> InnerProductSpace for LocalIndexableVectorSpace<T> {
 
 
 impl<T: Scalar> NormedSpace for LocalIndexableVectorSpace<T> {
-   fn norm<'a>(&'a self, x: &sparse_traits::ElementView<'a, 'a, Self>) -> <Self::F as Scalar>::Real {
+   fn norm<'a>(&'a self, x: &sparse_traits::ElementView<'a, Self>) -> <Self::F as Scalar>::Real {
       x.norm_2() 
    } 
 }

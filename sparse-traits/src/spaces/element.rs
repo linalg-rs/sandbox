@@ -22,7 +22,7 @@ pub trait Element {
 }
 
 // The view type associated with elements of linear spaces.
-pub type ElementView<'a, 'b, Space> = <<Space as LinearSpace>::E<'a> as Element>::View<'b>;
+pub type ElementView<'a, Space> = <<Space as LinearSpace>::E<'a> as Element>::View<'a>;
 
 // The mutable view type associated with elements of linear spaces.
-pub type ElementViewMut<'a, 'b, Space> = <<Space as LinearSpace>::E<'a> as Element>::ViewMut<'b>;
+pub type ElementViewMut<'a, Space> = <<Space as LinearSpace>::E<'a> as Element>::ViewMut<'a>;

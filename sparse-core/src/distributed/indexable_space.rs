@@ -93,8 +93,8 @@ where
 {
     fn inner<'b>(
         &self,
-        x: &sparse_traits::ElementView<'b, 'b, Self>,
-        other: &sparse_traits::ElementView<'b, 'b, Self>,
+        x: &sparse_traits::ElementView<'b, Self>,
+        other: &sparse_traits::ElementView<'b, Self>,
     ) -> sparse_traits::Result<Self::F>
     where
         Self: 'b,
