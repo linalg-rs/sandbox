@@ -12,12 +12,20 @@ pub trait IndexableVector {
 
     fn data(&self) -> Option<&RwLock<Self::Data>>;
 
-    fn try_read(&self) -> TryLockResult<RwLockReadGuard<'_, Self::Data>> {
-        self.data().unwrap().try_read()
+    fn try_read(&self) -> Option<TryLockResult<RwLockReadGuard<'_, Self::Data>>> {
+        match self.data() {
+            Some(locked) => Some(locked.try_read()),
+            None => None,
+        }
     }
-    fn try_write(&self) -> TryLockResult<RwLockWriteGuard<'_, Self::Data>> {
-        self.data().unwrap().try_write()
+    fn try_write(&self) -> Option<TryLockResult<RwLockWriteGuard<'_, Self::Data>>> {
+        match self.data() {
+            Some(locked) => Some(locked.try_write()),
+            None => None,
+        }
     }
+
+    fn get_mut(&mut self) -> Option<&mut Self::Data>;
 
     fn index_layout(&self) -> &Self::Ind;
 }
@@ -25,6 +33,10 @@ pub trait IndexableVector {
 pub trait IndexableVectorData {
     type T: Scalar;
     type Iter<'a>: std::iter::Iterator<Item = &'a Self::T>
+    where
+        Self: 'a;
+
+    type IterMut<'a>: std::iter::Iterator<Item = &'a mut Self::T>
     where
         Self: 'a;
 
@@ -37,12 +49,6 @@ pub trait IndexableVectorData {
     fn len(&self) -> IndexType;
 
     fn data(&self) -> &[Self::T];
-}
-
-pub trait IndexableVectorDataMut: IndexableVectorData {
-    type IterMut<'a>: std::iter::Iterator<Item = &'a mut Self::T>
-    where
-        Self: 'a;
 
     fn iter_mut(&mut self) -> Self::IterMut<'_>;
 

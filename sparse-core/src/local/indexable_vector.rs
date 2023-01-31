@@ -20,6 +20,7 @@ pub struct LocalIndexableVectorData<T: Scalar> {
 
 impl<T: Scalar> IndexableVectorData for LocalIndexableVectorData<T> {
     type Iter<'b> = std::slice::Iter<'b, T> where Self: 'b;
+    type IterMut<'b> = std::slice::IterMut<'b, T> where Self: 'b;
 
     type T = T;
 
@@ -42,10 +43,6 @@ impl<T: Scalar> IndexableVectorData for LocalIndexableVectorData<T> {
     fn data(&self) -> &[Self::T] {
         self.data.as_slice()
     }
-}
-
-impl<T: Scalar> IndexableVectorDataMut for LocalIndexableVectorData<T> {
-    type IterMut<'b> = std::slice::IterMut<'b, T> where Self: 'b;
 
     fn get_mut(&mut self, index: IndexType) -> Option<&mut Self::T> {
         self.data.get_mut(index)
@@ -87,13 +84,19 @@ impl<T: Scalar> IndexableVector for LocalIndexableVector<'_, T> {
     fn data(&self) -> Option<&std::sync::RwLock<Self::Data>> {
         self.data.as_ref()
     }
+    fn get_mut(&mut self) -> Option<&mut Self::Data> {
+        match &mut self.data {
+            Some(locked) => Some(locked.get_mut().unwrap()),
+            None => None,
+        }
+    }
 }
 
 impl<T: Scalar> Inner for LocalIndexableVector<'_, T> {
     type T = T;
     fn inner(&self, other: &Self) -> Result<Self::T> {
-        let my_data = self.try_read().unwrap();
-        let other_data = other.try_read().unwrap();
+        let my_data = self.try_read().unwrap().unwrap();
+        let other_data = other.try_read().unwrap().unwrap();
         if !self.index_layout().is_same(other.index_layout()) {
             return Err(Error::OperationFailed);
         }
@@ -112,6 +115,7 @@ impl<T: Scalar> AbsSquareSum for LocalIndexableVector<'_, T> {
     fn abs_square_sum(&self) -> <Self::T as Scalar>::Real {
         self.try_read()
             .unwrap()
+            .unwrap()
             .iter()
             .fold(<<Self::T as Scalar>::Real>::zero(), |acc, &elem| {
                 acc + elem.square()
@@ -123,6 +127,7 @@ impl<T: Scalar> Norm1 for LocalIndexableVector<'_, T> {
     type T = T;
     fn norm_1(&self) -> <Self::T as Scalar>::Real {
         self.try_read()
+            .unwrap()
             .unwrap()
             .iter()
             .fold(<<Self::T as Scalar>::Real>::zero(), |acc, &elem| {
@@ -141,7 +146,7 @@ impl<T: Scalar> Norm2 for LocalIndexableVector<'_, T> {
 impl<T: Scalar> NormInf for LocalIndexableVector<'_, T> {
     type T = T;
     fn norm_inf(&self) -> <Self::T as Scalar>::Real {
-        self.try_read().unwrap().iter().fold(
+        self.try_read().unwrap().unwrap().iter().fold(
             <<Self::T as Scalar>::Real as Float>::neg_infinity(),
             |acc, &elem| <<Self::T as Scalar>::Real as Float>::max(acc, elem.abs()),
         )
@@ -154,8 +159,8 @@ impl<T: Scalar> Swap for LocalIndexableVector<'_, T> {
         if !self.index_layout().is_same(other.index_layout()) {
             return Err(Error::OperationFailed);
         } else {
-            let mut my_data = self.try_write().unwrap();
-            let mut other_data = other.try_write().unwrap();
+            let mut my_data = self.try_write().unwrap().unwrap();
+            let mut other_data = other.try_write().unwrap().unwrap();
             for (first, second) in my_data.iter_mut().zip(other_data.iter_mut()) {
                 std::mem::swap(first, second);
             }
@@ -170,8 +175,8 @@ impl<T: Scalar> Fill for LocalIndexableVector<'_, T> {
         if !self.index_layout().is_same(other.index_layout()) {
             return Err(Error::OperationFailed);
         } else {
-            let mut my_data = self.try_write().unwrap();
-            let other_data = other.try_read().unwrap();
+            let mut my_data = self.try_write().unwrap().unwrap();
+            let other_data = other.try_read().unwrap().unwrap();
             for (first, second) in my_data.iter_mut().zip(other_data.iter()) {
                 *first = *second;
             }
@@ -183,7 +188,7 @@ impl<T: Scalar> Fill for LocalIndexableVector<'_, T> {
 impl<T: Scalar> ScalarMult for LocalIndexableVector<'_, T> {
     type T = T;
     fn scalar_mult(&mut self, scalar: Self::T) {
-        for elem in self.try_write().unwrap().iter_mut() {
+        for elem in self.try_write().unwrap().unwrap().iter_mut() {
             *elem *= scalar;
         }
     }
@@ -195,8 +200,8 @@ impl<T: Scalar> MultSumInto for LocalIndexableVector<'_, T> {
         if !self.index_layout().is_same(other.index_layout()) {
             return Err(Error::OperationFailed);
         }
-        let mut my_data = self.try_write().unwrap();
-        let other_view = other.try_read().unwrap();
+        let mut my_data = self.try_write().unwrap().unwrap();
+        let other_view = other.try_read().unwrap().unwrap();
         if scalar == T::zero() {
             return Ok(());
         }
@@ -237,8 +242,8 @@ mod tests {
         let vec2 = new_vec::<c64>(&index_layout);
 
         {
-            let mut vec1_data = vec1.try_write().unwrap();
-            let mut vec2_data = vec2.try_write().unwrap();
+            let mut vec1_data = vec1.try_write().unwrap().unwrap();
+            let mut vec2_data = vec2.try_write().unwrap().unwrap();
 
             *vec1_data.get_mut(0).unwrap() = c64::new(1.0, 2.0);
             *vec1_data.get_mut(1).unwrap() = c64::new(0.5, 1.0);
@@ -261,7 +266,7 @@ mod tests {
 
         let vec = new_vec::<c64>(&index_layout);
 
-        let mut vec_data = vec.try_write().unwrap();
+        let mut vec_data = vec.try_write().unwrap().unwrap();
 
         let val1 = c64::new(1.0, 2.0);
         let val2 = c64::new(1.5, 3.0);
@@ -286,8 +291,8 @@ mod tests {
         let val1 = c64::new(1.0, 2.0);
         let val2 = c64::new(1.5, 3.0);
 
-        *vec.try_write().unwrap().get_mut(0).unwrap() = val1;
-        *vec.try_write().unwrap().get_mut(1).unwrap() = val2;
+        *vec.try_write().unwrap().unwrap().get_mut(0).unwrap() = val1;
+        *vec.try_write().unwrap().unwrap().get_mut(1).unwrap() = val2;
 
         let actual = vec.norm_1();
         let expected = val1.abs() + val2.abs();
@@ -304,8 +309,8 @@ mod tests {
         let val1 = c64::new(1.0, 2.0);
         let val2 = c64::new(1.5, 3.0);
 
-        *vec.try_write().unwrap().get_mut(0).unwrap() = val1;
-        *vec.try_write().unwrap().get_mut(1).unwrap() = val2;
+        *vec.try_write().unwrap().unwrap().get_mut(0).unwrap() = val1;
+        *vec.try_write().unwrap().unwrap().get_mut(1).unwrap() = val2;
 
         let actual = vec.norm_2();
         let expected = (val1.abs() * val1.abs() + val2.abs() * val2.abs()).sqrt();
@@ -322,8 +327,8 @@ mod tests {
         let val1 = c64::new(1.0, 2.0);
         let val2 = c64::new(1.5, 3.0);
 
-        *vec.try_write().unwrap().get_mut(0).unwrap() = val1;
-        *vec.try_write().unwrap().get_mut(1).unwrap() = val2;
+        *vec.try_write().unwrap().unwrap().get_mut(0).unwrap() = val1;
+        *vec.try_write().unwrap().unwrap().get_mut(1).unwrap() = val2;
 
         let actual = vec.norm_inf();
         let expected = val2.abs();
@@ -338,8 +343,8 @@ mod tests {
         let mut vec1 = new_vec::<c64>(&index_layout);
         let mut vec2 = new_vec::<c64>(&index_layout);
 
-        let mut vec1_data = vec1.try_write().unwrap();
-        let mut vec2_data = vec2.try_write().unwrap();
+        let mut vec1_data = vec1.try_write().unwrap().unwrap();
+        let mut vec2_data = vec2.try_write().unwrap().unwrap();
 
         *vec1_data.get_mut(0).unwrap() = c64::new(1.0, 2.0);
         *vec1_data.get_mut(1).unwrap() = c64::new(0.5, 1.0);
@@ -352,8 +357,14 @@ mod tests {
 
         vec1.swap(&mut vec2).unwrap();
 
-        assert_eq!(*vec1.try_read().unwrap().get(0).unwrap(), c64::new(2.0, 3.0));
-        assert_eq!(*vec2.try_read().unwrap().get(1).unwrap(), c64::new(0.5, 1.0));
+        assert_eq!(
+            *vec1.try_read().unwrap().unwrap().get(0).unwrap(),
+            c64::new(2.0, 3.0)
+        );
+        assert_eq!(
+            *vec2.try_read().unwrap().unwrap().get(1).unwrap(),
+            c64::new(0.5, 1.0)
+        );
     }
 
     #[test]
@@ -363,8 +374,8 @@ mod tests {
         let mut vec1 = new_vec::<c64>(&index_layout);
         let vec2 = new_vec::<c64>(&index_layout);
 
-        let mut vec1_data = vec1.try_write().unwrap();
-        let mut vec2_data = vec2.try_write().unwrap();
+        let mut vec1_data = vec1.try_write().unwrap().unwrap();
+        let mut vec2_data = vec2.try_write().unwrap().unwrap();
 
         *vec1_data.get_mut(0).unwrap() = c64::new(1.0, 2.0);
         *vec1_data.get_mut(1).unwrap() = c64::new(0.5, 1.0);
@@ -378,36 +389,42 @@ mod tests {
 
         let _ = vec1.mult_sum_into(&vec2, c64::new(0.0, 0.0));
 
-        assert_eq!(*vec1.try_read().unwrap().get(0).unwrap(), c64::new(1.0, 2.0));
-        assert_eq!(*vec1.try_read().unwrap().get(1).unwrap(), c64::new(0.5, 1.0));
+        assert_eq!(
+            *vec1.try_read().unwrap().unwrap().get(0).unwrap(),
+            c64::new(1.0, 2.0)
+        );
+        assert_eq!(
+            *vec1.try_read().unwrap().unwrap().get(1).unwrap(),
+            c64::new(0.5, 1.0)
+        );
 
-        *vec1.try_write().unwrap().get_mut(0).unwrap() = c64::new(1.0, 2.0);
-        *vec1.try_write().unwrap().get_mut(1).unwrap() = c64::new(0.5, 1.0);
+        *vec1.try_write().unwrap().unwrap().get_mut(0).unwrap() = c64::new(1.0, 2.0);
+        *vec1.try_write().unwrap().unwrap().get_mut(1).unwrap() = c64::new(0.5, 1.0);
 
         // Test scalar = 1
         let _ = vec1.mult_sum_into(&vec2, c64::new(1.0, 0.0));
 
         assert_eq!(
-            *vec1.try_read().unwrap().get(0).unwrap(),
+            *vec1.try_read().unwrap().unwrap().get(0).unwrap(),
             c64::new(1.0, 2.0) + c64::new(2.0, 3.0)
         );
         assert_eq!(
-            *vec1.try_read().unwrap().get(1).unwrap(),
+            *vec1.try_read().unwrap().unwrap().get(1).unwrap(),
             c64::new(0.5, 1.0) + c64::new(0.4, 1.5)
         );
 
-        *vec1.try_write().unwrap().get_mut(0).unwrap() = c64::new(1.0, 2.0);
-        *vec1.try_write().unwrap().get_mut(1).unwrap() = c64::new(0.5, 1.0);
+        *vec1.try_write().unwrap().unwrap().get_mut(0).unwrap() = c64::new(1.0, 2.0);
+        *vec1.try_write().unwrap().unwrap().get_mut(1).unwrap() = c64::new(0.5, 1.0);
 
         // Test scalar = 1.3
         let _ = vec1.mult_sum_into(&vec2, c64::new(1.3, 0.0));
 
         assert_eq!(
-            *vec1.try_read().unwrap().get(0).unwrap(),
+            *vec1.try_read().unwrap().unwrap().get(0).unwrap(),
             c64::new(1.0, 2.0) + c64::new(1.3, 0.0) * c64::new(2.0, 3.0)
         );
         assert_eq!(
-            *vec1.try_read().unwrap().get(1).unwrap(),
+            *vec1.try_read().unwrap().unwrap().get(1).unwrap(),
             c64::new(0.5, 1.0) + c64::new(1.3, 0.0) * c64::new(0.4, 1.5)
         );
     }
@@ -420,17 +437,17 @@ mod tests {
         let val1 = c64::new(1.0, 2.0);
         let val2 = c64::new(1.5, 3.0);
 
-        *vec.try_write().unwrap().get_mut(0).unwrap() = val1;
-        *vec.try_write().unwrap().get_mut(1).unwrap() = val2;
+        *vec.try_write().unwrap().unwrap().get_mut(0).unwrap() = val1;
+        *vec.try_write().unwrap().unwrap().get_mut(1).unwrap() = val2;
 
         vec.scalar_mult(c64::new(2.1, 3.5));
 
         assert_eq!(
-            *vec.try_read().unwrap().get(0).unwrap(),
+            *vec.try_read().unwrap().unwrap().get(0).unwrap(),
             c64::new(2.1, 3.5) * c64::new(1.0, 2.0)
         );
         assert_eq!(
-            *vec.try_read().unwrap().get(1).unwrap(),
+            *vec.try_read().unwrap().unwrap().get(1).unwrap(),
             c64::new(2.1, 3.5) * c64::new(1.5, 3.0)
         );
     }

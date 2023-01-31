@@ -11,9 +11,9 @@ fn main() {
     let space = LocalIndexableVectorSpace::<f64>::new(10);
     let mut vec = space.create_element();
 
-    *vec.view_mut().try_write().unwrap().get_mut(0).unwrap() = 2.0;
+    *vec.view_mut().try_write().unwrap().unwrap().get_mut(0).unwrap() = 2.0;
 
-    let n = vec.view().try_read().unwrap().len();
+    let n = vec.view().try_read().unwrap().unwrap().len();
     println!("The dimension of the vector is {}", n);
     println!("The norm of the vector is {}", vec.view().norm_2());
 
