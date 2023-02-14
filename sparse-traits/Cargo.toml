@@ -8,4 +8,4 @@ edition = "2021"
 [dependencies]
 num = "0.4"
 cauchy = "0.4"
-
+thiserror = "1"

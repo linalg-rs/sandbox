@@ -7,7 +7,7 @@ use mpi::traits::*;
 use num::{Float, Zero};
 use sparse_traits::linalg::*;
 use sparse_traits::linalg::{Inner, Norm1, Norm2, NormInfty};
-use sparse_traits::types::{Error, Result};
+use sparse_traits::types::{SparseLinAlgError, SparseLinAlgResult};
 use sparse_traits::{linalg::IndexableVectorView, IndexLayout, Scalar};
 
 use super::index_layout::DistributedIndexLayout;
@@ -32,7 +32,7 @@ impl<'a, T: Scalar + Equivalence, C: Communicator> DistributedIndexableVector<'a
         self.local.as_ref()
     }
 
-    pub fn fill_from_root(&mut self, other: &Option<LocalIndexableVector<T>>) -> Result<()> {
+    pub fn fill_from_root(&mut self, other: &Option<LocalIndexableVector<T>>) -> SparseLinAlgResult<()> {
         let comm = self.index_layout().comm().duplicate();
         let counts = self.index_layout().counts().as_slice();
         let displacements = self.index_layout().displacements().as_slice();
@@ -102,9 +102,11 @@ impl<'a, T: Scalar + Equivalence, C: Communicator> IndexableVector
 
 impl<T: Scalar + Equivalence, C: Communicator> Inner for DistributedIndexableVector<'_, T, C> {
     type T = T;
-    fn inner(&self, other: &Self) -> Result<Self::T> {
+    fn inner(&self, other: &Self) -> SparseLinAlgResult<Self::T> {
         if !self.index_layout().is_same(other.index_layout()) {
-            return Err(Error::OperationFailed);
+            return Err(SparseLinAlgError::IndexLayoutError(
+                "Vectors in `inner` must reference the same index layout".to_string(),
+            ));
         }
 
         let mut local_result = T::zero();

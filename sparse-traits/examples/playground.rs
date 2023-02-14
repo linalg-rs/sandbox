@@ -62,7 +62,7 @@ impl OperatorBase for OpWithMatVec {
 // The actual matvec is now implemented. It is just
 // a stub that prints a message.
 impl AsApply for OpWithMatVec {
-    fn apply(&self, _x: ElementView<Self::Domain>, _y: ElementViewMut<Self::Range>) -> Result<()> {
+    fn apply(&self, _x: ElementView<Self::Domain>, _y: ElementViewMut<Self::Range>) -> SparseLinAlgResult<()> {
         println!("I am doing a matvec");
         Ok(())
     }

@@ -74,7 +74,7 @@ impl<T: Scalar> InnerProductSpace for LocalIndexableVectorSpace<T> {
         &self,
         x: &sparse_traits::ElementView<'a, Self>,
         other: &sparse_traits::ElementView<'a, Self>,
-    ) -> sparse_traits::Result<Self::F> where Self: 'a{
+    ) -> sparse_traits::SparseLinAlgResult<Self::F> where Self: 'a{
         x.inner(other)
     }
 }
