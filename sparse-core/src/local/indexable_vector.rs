@@ -2,7 +2,7 @@
 use num::{Float, Zero};
 use sparse_traits::linalg::traits::*;
 use sparse_traits::linalg::*;
-use sparse_traits::types::{Error, Result};
+use sparse_traits::types::{SparseLinAlgError, SparseLinAlgResult};
 use sparse_traits::Scalar;
 use sparse_traits::{IndexLayout, IndexType};
 
@@ -105,11 +105,13 @@ impl<T: Scalar> IndexableVectorViewMut for LocalIndexableVectorViewMut<'_, T> {
 
 impl<T: Scalar> Inner for LocalIndexableVector<'_, T> {
     type T = T;
-    fn inner(&self, other: &Self) -> Result<Self::T> {
+    fn inner(&self, other: &Self) -> SparseLinAlgResult<Self::T> {
         let my_view = self.view().unwrap();
         let other_view = other.view().unwrap();
         if !self.index_layout().is_same(other.index_layout()) {
-            return Err(Error::OperationFailed);
+            return Err(SparseLinAlgError::IndexLayoutError(
+                "Vectors in `inner` must reference the same index layout".to_string(),
+            ));
         }
         let result = my_view
             .iter()
@@ -164,9 +166,11 @@ impl<T: Scalar> NormInfty for LocalIndexableVector<'_, T> {
 
 impl<T: Scalar> Swap for LocalIndexableVector<'_, T> {
     type T = T;
-    fn swap(&mut self, other: &mut Self) -> sparse_traits::types::Result<()> {
+    fn swap(&mut self, other: &mut Self) -> sparse_traits::types::SparseLinAlgResult<()> {
         if !self.index_layout().is_same(other.index_layout()) {
-            return Err(Error::OperationFailed);
+            return Err(SparseLinAlgError::IndexLayoutError(
+                "Vectors in `swap` must reference the same index layout".to_string(),
+            ));
         } else {
             let mut my_view = self.view_mut().unwrap();
             let mut other_view = other.view_mut().unwrap();
@@ -180,9 +184,11 @@ impl<T: Scalar> Swap for LocalIndexableVector<'_, T> {
 
 impl<T: Scalar> Fill for LocalIndexableVector<'_, T> {
     type T = T;
-    fn fill(&mut self, other: &Self) -> sparse_traits::types::Result<()> {
+    fn fill(&mut self, other: &Self) -> sparse_traits::types::SparseLinAlgResult<()> {
         if !self.index_layout().is_same(other.index_layout()) {
-            return Err(Error::OperationFailed);
+            return Err(SparseLinAlgError::IndexLayoutError(
+                "Vectors in `fill` must reference the same index layout".to_string(),
+            ));
         } else {
             let mut my_view = self.view_mut().unwrap();
             let other_view = other.view().unwrap();
@@ -205,9 +211,15 @@ impl<T: Scalar> ScalarMult for LocalIndexableVector<'_, T> {
 
 impl<T: Scalar> MultSumInto for LocalIndexableVector<'_, T> {
     type T = T;
-    fn mult_sum_into(&mut self, other: &Self, scalar: Self::T) -> sparse_traits::types::Result<()> {
+    fn mult_sum_into(
+        &mut self,
+        other: &Self,
+        scalar: Self::T,
+    ) -> sparse_traits::types::SparseLinAlgResult<()> {
         if !self.index_layout().is_same(other.index_layout()) {
-            return Err(Error::OperationFailed);
+            return Err(SparseLinAlgError::IndexLayoutError(
+                "Vectors in `mult_sum_into` must reference the same index layout".to_string(),
+            ));
         }
         let mut my_view = self.view_mut().unwrap();
         let other_view = other.view().unwrap();

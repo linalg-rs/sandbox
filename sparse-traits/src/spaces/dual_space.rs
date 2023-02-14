@@ -1,5 +1,5 @@
 use super::{ElementView, LinearSpace};
-use crate::types::Result;
+use crate::types::SparseLinAlgResult;
 
 pub trait DualSpace: LinearSpace {
     type Space: LinearSpace<F = Self::F>;
@@ -8,5 +8,5 @@ pub trait DualSpace: LinearSpace {
         &self,
         x: ElementView<Self>,
         other: ElementView<Self::Space>,
-    ) -> Result<Self::F>;
+    ) -> SparseLinAlgResult<Self::F>;
 }

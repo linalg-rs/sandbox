@@ -95,7 +95,7 @@ where
         &self,
         x: &sparse_traits::ElementView<'b, Self>,
         other: &sparse_traits::ElementView<'b, Self>,
-    ) -> sparse_traits::Result<Self::F>
+    ) -> sparse_traits::SparseLinAlgResult<Self::F>
     where
         Self: 'b,
     {

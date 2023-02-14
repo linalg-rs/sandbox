@@ -5,7 +5,7 @@ use crate::types::Scalar;
 /// Inner product with another object.
 pub trait Inner {
     type T: Scalar;
-    fn inner(&self, other: &Self) -> crate::types::Result<Self::T>;
+    fn inner(&self, other: &Self) -> crate::types::SparseLinAlgResult<Self::T>;
 }
 
 /// Take the sum of the squares of the absolute values of the entries.
@@ -35,13 +35,13 @@ pub trait NormInfty {
 /// Swap entries with another vector.
 pub trait Swap {
     type T: Scalar;
-    fn swap(&mut self, other: &mut Self) -> crate::types::Result<()>;
+    fn swap(&mut self, other: &mut Self) -> crate::types::SparseLinAlgResult<()>;
 }
 
 /// Fill vector by copying from another vector.
 pub trait Fill {
     type T: Scalar;
-    fn fill(&mut self, other: &Self) -> crate::types::Result<()>;
+    fn fill(&mut self, other: &Self) -> crate::types::SparseLinAlgResult<()>;
 }
 
 /// Multiply entries with a scalar.
@@ -53,5 +53,5 @@ pub trait ScalarMult {
 /// Compute self -> alpha * other + self.
 pub trait MultSumInto {
     type T: Scalar;
-    fn mult_sum_into(&mut self, other: &Self, scalar: Self::T) -> crate::types::Result<()>;
+    fn mult_sum_into(&mut self, other: &Self, scalar: Self::T) -> crate::types::SparseLinAlgResult<()>;
 }

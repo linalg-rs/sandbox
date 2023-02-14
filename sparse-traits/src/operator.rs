@@ -26,15 +26,15 @@ pub trait OperatorBase: Debug {
 
 /// Apply an operator.
 pub trait AsApply: OperatorBase {
-    fn apply(&self, x: ElementView<Self::Domain>, y: ElementViewMut<Self::Range>) -> Result<()>;
+    fn apply(&self, x: ElementView<Self::Domain>, y: ElementViewMut<Self::Range>) -> SparseLinAlgResult<()>;
 }
 
 impl<In: LinearSpace, Out: LinearSpace> AsApply for dyn OperatorBase<Domain = In, Range = Out> {
-    fn apply(&self, x: ElementView<Self::Domain>, y: ElementViewMut<Self::Range>) -> Result<()> {
+    fn apply(&self, x: ElementView<Self::Domain>, y: ElementViewMut<Self::Range>) -> SparseLinAlgResult<()> {
         if let Some(op) = self.as_apply() {
             op.apply(x, y)
         } else {
-            Err(Error::NotImplemented)
+            Err(SparseLinAlgError::NotImplemented("Apply".to_string()))
         }
     }
 }
@@ -103,7 +103,7 @@ mod tests {
             &self,
             _x: ElementView<Self::Domain>,
             _y: ElementViewMut<Self::Range>,
-        ) -> Result<()> {
+        ) -> SparseLinAlgResult<()> {
             println!("{self:?} matvec");
             Ok(())
         }
@@ -129,7 +129,7 @@ mod tests {
             &self,
             _x: ElementView<Self::Domain>,
             _y: ElementViewMut<Self::Range>,
-        ) -> Result<()> {
+        ) -> SparseLinAlgResult<()> {
             println!("{self:?} matvec");
             Ok(())
         }
@@ -150,13 +150,13 @@ mod tests {
             &self,
             _x: ElementView<Self::Domain>,
             _y: ElementViewMut<Self::Range>,
-        ) -> Result<()> {
+        ) -> SparseLinAlgResult<()> {
             println!("{self:?} matvec");
-            Err(Error::OperationFailed)
+            Err(SparseLinAlgError::OperationFailed("Apply".to_string()))
         }
     }
     #[test]
-    fn test_mult_dyn() -> Result<()> {
+    fn test_mult_dyn() -> SparseLinAlgResult<()> {
         let x = SimpleVector {};
         let mut y = SimpleVector {};
         let ops: Vec<Box<dyn OperatorBase<Domain = SimpleSpace, Range = SimpleSpace>>> =
@@ -168,7 +168,7 @@ mod tests {
     }
 
     #[test]
-    fn test_mult() -> Result<()> {
+    fn test_mult() -> SparseLinAlgResult<()> {
         let x = SimpleVector {};
         let mut y = SimpleVector {};
         let a = SparseMatrix;

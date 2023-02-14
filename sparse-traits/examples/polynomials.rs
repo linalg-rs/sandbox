@@ -59,7 +59,7 @@ impl LinearSpace for PointwiseEvaluatorSpace {
 impl DualSpace for PointwiseEvaluatorSpace {
     type Space = PolynomialSpace;
 
-    fn dual_pairing(&self, x: ElementView<Self>, p: ElementView<Self::Space>) -> Result<Self::F> {
+    fn dual_pairing(&self, x: ElementView<Self>, p: ElementView<Self::Space>) -> SparseLinAlgResult<Self::F> {
         Ok(x.scale * p.eval(x.x))
     }
 }
@@ -96,7 +96,7 @@ impl OperatorBase for Derivative {
     }
 }
 impl AsApply for Derivative {
-    fn apply(&self, p: PolynomialView, dp: PolynomialViewMut) -> Result<()> {
+    fn apply(&self, p: PolynomialView, dp: PolynomialViewMut) -> SparseLinAlgResult<()> {
         for (i, c) in p.monomial_coeffs[1..].iter().enumerate() {
             dp.monomial_coeffs[i] = (1. + i as f64) * c;
         }
@@ -112,7 +112,7 @@ mod tests {
     use crate::{
         Derivative, PointwiseEvaluate, PointwiseEvaluatorSpace, Polynomial, PolynomialSpace,
     };
-    use sparse_traits::{AsApply, DualSpace, Element, OperatorBase, Result};
+    use sparse_traits::{AsApply, DualSpace, Element, OperatorBase, SparseLinAlgResult};
 
     #[test]
     fn test_poly_eval() {
@@ -121,7 +121,7 @@ mod tests {
     }
 
     #[test]
-    fn test_dual() -> Result<()> {
+    fn test_dual() -> SparseLinAlgResult<()> {
         let ds = PointwiseEvaluatorSpace;
         let p = Polynomial::from_monomial(&[1., 2., 3.]);
         let n = PointwiseEvaluate::new(2.);
@@ -131,7 +131,7 @@ mod tests {
     }
 
     #[test]
-    fn test_derivative() -> Result<()> {
+    fn test_derivative() -> SparseLinAlgResult<()> {
         let p = Polynomial::from_monomial(&[1., 2., 3.]);
         let mut dp = Polynomial::from_monomial(&[1., 1., 1.]);
         let d_ = Derivative;
