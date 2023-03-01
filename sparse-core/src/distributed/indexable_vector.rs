@@ -101,7 +101,6 @@ impl<'a, T: Scalar + Equivalence, C: Communicator> IndexableVector
 }
 
 impl<T: Scalar + Equivalence, C: Communicator> Inner for DistributedIndexableVector<'_, T, C> {
-    type T = T;
     fn inner(&self, other: &Self) -> SparseLinAlgResult<Self::T> {
         if !self.index_layout().is_same(other.index_layout()) {
             return Err(SparseLinAlgError::IndexLayoutError(
@@ -131,7 +130,6 @@ impl<T: Scalar + Equivalence, C: Communicator> AbsSquareSum for DistributedIndex
 where
     T::Real: Equivalence,
 {
-    type T = T;
     fn abs_square_sum(&self) -> <Self::T as Scalar>::Real {
         let comm = self.index_layout.comm();
 
@@ -155,7 +153,6 @@ impl<T: Scalar + Equivalence, C: Communicator> Norm1 for DistributedIndexableVec
 where
     T::Real: Equivalence,
 {
-    type T = T;
     fn norm_1(&self) -> <Self::T as Scalar>::Real {
         let comm = self.index_layout.comm();
 
@@ -179,7 +176,6 @@ impl<T: Scalar + Equivalence, C: Communicator> Norm2 for DistributedIndexableVec
 where
     T::Real: Equivalence,
 {
-    type T = T;
     fn norm_2(&self) -> <Self::T as Scalar>::Real {
         Float::sqrt(self.abs_square_sum())
     }
@@ -189,7 +185,6 @@ impl<T: Scalar + Equivalence, C: Communicator> NormInfty for DistributedIndexabl
 where
     T::Real: Equivalence,
 {
-    type T = T;
     fn norm_infty(&self) -> <Self::T as Scalar>::Real {
         let comm = self.index_layout.comm();
 

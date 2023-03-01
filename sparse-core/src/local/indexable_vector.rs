@@ -1,6 +1,6 @@
 //! An Indexable Vector is a container whose elements can be 1d indexed.
 use num::{Float, Zero};
-use sparse_traits::linalg::traits::*;
+use sparse_traits::linalg::vector_traits::*;
 use sparse_traits::linalg::*;
 use sparse_traits::types::{SparseLinAlgError, SparseLinAlgResult};
 use sparse_traits::Scalar;
@@ -104,7 +104,6 @@ impl<T: Scalar> IndexableVectorViewMut for LocalIndexableVectorViewMut<'_, T> {
 }
 
 impl<T: Scalar> Inner for LocalIndexableVector<'_, T> {
-    type T = T;
     fn inner(&self, other: &Self) -> SparseLinAlgResult<Self::T> {
         let my_view = self.view().unwrap();
         let other_view = other.view().unwrap();
@@ -124,7 +123,6 @@ impl<T: Scalar> Inner for LocalIndexableVector<'_, T> {
 }
 
 impl<T: Scalar> AbsSquareSum for LocalIndexableVector<'_, T> {
-    type T = T;
     fn abs_square_sum(&self) -> <Self::T as Scalar>::Real {
         self.view()
             .unwrap()
@@ -136,7 +134,6 @@ impl<T: Scalar> AbsSquareSum for LocalIndexableVector<'_, T> {
 }
 
 impl<T: Scalar> Norm1 for LocalIndexableVector<'_, T> {
-    type T = T;
     fn norm_1(&self) -> <Self::T as Scalar>::Real {
         self.view()
             .unwrap()
@@ -148,14 +145,12 @@ impl<T: Scalar> Norm1 for LocalIndexableVector<'_, T> {
 }
 
 impl<T: Scalar> Norm2 for LocalIndexableVector<'_, T> {
-    type T = T;
     fn norm_2(&self) -> <Self::T as Scalar>::Real {
         <<Self::T as Scalar>::Real as Float>::sqrt(self.abs_square_sum())
     }
 }
 
 impl<T: Scalar> NormInfty for LocalIndexableVector<'_, T> {
-    type T = T;
     fn norm_infty(&self) -> <Self::T as Scalar>::Real {
         self.view().unwrap().iter().fold(
             <<Self::T as Scalar>::Real as Float>::neg_infinity(),
@@ -165,7 +160,6 @@ impl<T: Scalar> NormInfty for LocalIndexableVector<'_, T> {
 }
 
 impl<T: Scalar> Swap for LocalIndexableVector<'_, T> {
-    type T = T;
     fn swap(&mut self, other: &mut Self) -> sparse_traits::types::SparseLinAlgResult<()> {
         if !self.index_layout().is_same(other.index_layout()) {
             return Err(SparseLinAlgError::IndexLayoutError(
@@ -183,7 +177,6 @@ impl<T: Scalar> Swap for LocalIndexableVector<'_, T> {
 }
 
 impl<T: Scalar> Fill for LocalIndexableVector<'_, T> {
-    type T = T;
     fn fill(&mut self, other: &Self) -> sparse_traits::types::SparseLinAlgResult<()> {
         if !self.index_layout().is_same(other.index_layout()) {
             return Err(SparseLinAlgError::IndexLayoutError(
@@ -201,7 +194,6 @@ impl<T: Scalar> Fill for LocalIndexableVector<'_, T> {
 }
 
 impl<T: Scalar> ScalarMult for LocalIndexableVector<'_, T> {
-    type T = T;
     fn scalar_mult(&mut self, scalar: Self::T) {
         for elem in self.view_mut().unwrap().iter_mut() {
             *elem *= scalar;
@@ -210,7 +202,6 @@ impl<T: Scalar> ScalarMult for LocalIndexableVector<'_, T> {
 }
 
 impl<T: Scalar> MultSumInto for LocalIndexableVector<'_, T> {
-    type T = T;
     fn mult_sum_into(
         &mut self,
         other: &Self,
