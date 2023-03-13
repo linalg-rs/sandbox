@@ -8,9 +8,9 @@ use sparse_traits::{IndexLayout, IndexType};
 
 use super::index_layout::LocalIndexLayout;
 
-pub struct LocalIndexableVector<'a, T: Scalar> {
+pub struct LocalIndexableVector<T: Scalar> {
     data: Vec<T>,
-    index_layout: &'a LocalIndexLayout,
+    index_layout: LocalIndexLayout,
 }
 
 pub struct LocalIndexableVectorView<'a, T: Scalar> {
@@ -21,16 +21,16 @@ pub struct LocalIndexableVectorViewMut<'a, T: Scalar> {
     data: &'a mut Vec<T>,
 }
 
-impl<'a, T: Scalar> LocalIndexableVector<'a, T> {
-    pub fn new(index_layout: &'a LocalIndexLayout) -> LocalIndexableVector<'a, T> {
+impl<T: Scalar> LocalIndexableVector<T> {
+    pub fn new(size: IndexType) -> LocalIndexableVector<T> {
         LocalIndexableVector {
-            data: vec![T::zero(); index_layout.number_of_global_indices()],
-            index_layout,
+            data: vec![T::zero(); size],
+            index_layout: LocalIndexLayout::new(size),
         }
     }
 }
 
-impl<T: Scalar> IndexableVector for LocalIndexableVector<'_, T> {
+impl<T: Scalar> IndexableVector for LocalIndexableVector<T> {
     type T = T;
     type Ind = LocalIndexLayout;
     type View<'a> = LocalIndexableVectorView<'a, T> where Self: 'a;
@@ -103,11 +103,13 @@ impl<T: Scalar> IndexableVectorViewMut for LocalIndexableVectorViewMut<'_, T> {
     }
 }
 
-impl<T: Scalar> Inner for LocalIndexableVector<'_, T> {
+impl<T: Scalar> Inner for LocalIndexableVector<T> {
     fn inner(&self, other: &Self) -> SparseLinAlgResult<Self::T> {
         let my_view = self.view().unwrap();
         let other_view = other.view().unwrap();
-        if !self.index_layout().is_same(other.index_layout()) {
+        if self.index_layout().number_of_global_indices()
+            != other.index_layout().number_of_global_indices()
+        {
             return Err(SparseLinAlgError::IndexLayoutError(
                 "Vectors in `inner` must reference the same index layout".to_string(),
             ));
@@ -122,7 +124,7 @@ impl<T: Scalar> Inner for LocalIndexableVector<'_, T> {
     }
 }
 
-impl<T: Scalar> AbsSquareSum for LocalIndexableVector<'_, T> {
+impl<T: Scalar> AbsSquareSum for LocalIndexableVector<T> {
     fn abs_square_sum(&self) -> <Self::T as Scalar>::Real {
         self.view()
             .unwrap()
@@ -133,7 +135,7 @@ impl<T: Scalar> AbsSquareSum for LocalIndexableVector<'_, T> {
     }
 }
 
-impl<T: Scalar> Norm1 for LocalIndexableVector<'_, T> {
+impl<T: Scalar> Norm1 for LocalIndexableVector<T> {
     fn norm_1(&self) -> <Self::T as Scalar>::Real {
         self.view()
             .unwrap()
@@ -144,13 +146,13 @@ impl<T: Scalar> Norm1 for LocalIndexableVector<'_, T> {
     }
 }
 
-impl<T: Scalar> Norm2 for LocalIndexableVector<'_, T> {
+impl<T: Scalar> Norm2 for LocalIndexableVector<T> {
     fn norm_2(&self) -> <Self::T as Scalar>::Real {
         <<Self::T as Scalar>::Real as Float>::sqrt(self.abs_square_sum())
     }
 }
 
-impl<T: Scalar> NormInfty for LocalIndexableVector<'_, T> {
+impl<T: Scalar> NormInfty for LocalIndexableVector<T> {
     fn norm_infty(&self) -> <Self::T as Scalar>::Real {
         self.view().unwrap().iter().fold(
             <<Self::T as Scalar>::Real as Float>::neg_infinity(),
@@ -159,9 +161,11 @@ impl<T: Scalar> NormInfty for LocalIndexableVector<'_, T> {
     }
 }
 
-impl<T: Scalar> Swap for LocalIndexableVector<'_, T> {
+impl<T: Scalar> Swap for LocalIndexableVector<T> {
     fn swap(&mut self, other: &mut Self) -> sparse_traits::types::SparseLinAlgResult<()> {
-        if !self.index_layout().is_same(other.index_layout()) {
+        if self.index_layout().number_of_global_indices()
+            != other.index_layout().number_of_global_indices()
+        {
             return Err(SparseLinAlgError::IndexLayoutError(
                 "Vectors in `swap` must reference the same index layout".to_string(),
             ));
@@ -176,9 +180,11 @@ impl<T: Scalar> Swap for LocalIndexableVector<'_, T> {
     }
 }
 
-impl<T: Scalar> Fill for LocalIndexableVector<'_, T> {
+impl<T: Scalar> Fill for LocalIndexableVector<T> {
     fn fill(&mut self, other: &Self) -> sparse_traits::types::SparseLinAlgResult<()> {
-        if !self.index_layout().is_same(other.index_layout()) {
+        if self.index_layout().number_of_global_indices()
+            != other.index_layout().number_of_global_indices()
+        {
             return Err(SparseLinAlgError::IndexLayoutError(
                 "Vectors in `fill` must reference the same index layout".to_string(),
             ));
@@ -193,7 +199,7 @@ impl<T: Scalar> Fill for LocalIndexableVector<'_, T> {
     }
 }
 
-impl<T: Scalar> ScalarMult for LocalIndexableVector<'_, T> {
+impl<T: Scalar> ScalarMult for LocalIndexableVector<T> {
     fn scalar_mult(&mut self, scalar: Self::T) {
         for elem in self.view_mut().unwrap().iter_mut() {
             *elem *= scalar;
@@ -201,13 +207,15 @@ impl<T: Scalar> ScalarMult for LocalIndexableVector<'_, T> {
     }
 }
 
-impl<T: Scalar> MultSumInto for LocalIndexableVector<'_, T> {
+impl<T: Scalar> MultSumInto for LocalIndexableVector<T> {
     fn mult_sum_into(
         &mut self,
         other: &Self,
         scalar: Self::T,
     ) -> sparse_traits::types::SparseLinAlgResult<()> {
-        if !self.index_layout().is_same(other.index_layout()) {
+        if self.index_layout().number_of_global_indices()
+            != other.index_layout().number_of_global_indices()
+        {
             return Err(SparseLinAlgError::IndexLayoutError(
                 "Vectors in `mult_sum_into` must reference the same index layout".to_string(),
             ));
@@ -240,19 +248,19 @@ mod tests {
     const VEC_SIZE: IndexType = 2;
 
     fn index_layout() -> LocalIndexLayout {
-        LocalIndexLayout::new((0, VEC_SIZE))
+        LocalIndexLayout::new(VEC_SIZE)
     }
 
-    fn new_vec<'a, T: Scalar>(index_layout: &'a LocalIndexLayout) -> LocalIndexableVector<'a, T> {
-        LocalIndexableVector::<'_, T>::new(index_layout)
+    fn new_vec<T: Scalar>(size: IndexType) -> LocalIndexableVector<T> {
+        LocalIndexableVector::<T>::new(size)
     }
 
     #[test]
     fn test_inner() {
         let index_layout = index_layout();
 
-        let mut vec1 = new_vec::<c64>(&index_layout);
-        let mut vec2 = new_vec::<c64>(&index_layout);
+        let mut vec1 = new_vec::<c64>(VEC_SIZE);
+        let mut vec2 = new_vec::<c64>(VEC_SIZE);
 
         let mut vec1_view = vec1.view_mut().unwrap();
         let mut vec2_view = vec2.view_mut().unwrap();
@@ -275,7 +283,7 @@ mod tests {
     fn abs_square_sum() {
         let index_layout = index_layout();
 
-        let mut vec = new_vec::<c64>(&index_layout);
+        let mut vec = new_vec::<c64>(VEC_SIZE);
 
         let mut vec_view = vec.view_mut().unwrap();
 
@@ -295,7 +303,7 @@ mod tests {
     fn norm_1() {
         let index_layout = index_layout();
 
-        let mut vec = new_vec::<c64>(&index_layout);
+        let mut vec = new_vec::<c64>(VEC_SIZE);
 
         let val1 = c64::new(1.0, 2.0);
         let val2 = c64::new(1.5, 3.0);
@@ -313,7 +321,7 @@ mod tests {
     fn norm_2() {
         let index_layout = index_layout();
 
-        let mut vec = new_vec::<c64>(&index_layout);
+        let mut vec = new_vec::<c64>(VEC_SIZE);
 
         let val1 = c64::new(1.0, 2.0);
         let val2 = c64::new(1.5, 3.0);
@@ -331,7 +339,7 @@ mod tests {
     fn norm_inf() {
         let index_layout = index_layout();
 
-        let mut vec = new_vec::<c64>(&index_layout);
+        let mut vec = new_vec::<c64>(VEC_SIZE);
 
         let val1 = c64::new(1.0, 2.0);
         let val2 = c64::new(1.5, 3.0);
@@ -349,8 +357,8 @@ mod tests {
     fn swap() {
         let index_layout = index_layout();
 
-        let mut vec1 = new_vec::<c64>(&index_layout);
-        let mut vec2 = new_vec::<c64>(&index_layout);
+        let mut vec1 = new_vec::<c64>(VEC_SIZE);
+        let mut vec2 = new_vec::<c64>(VEC_SIZE);
 
         let mut vec1_view = vec1.view_mut().unwrap();
         let mut vec2_view = vec2.view_mut().unwrap();
@@ -371,8 +379,8 @@ mod tests {
     fn mult_sum_into() {
         let index_layout = index_layout();
 
-        let mut vec1 = new_vec::<c64>(&index_layout);
-        let mut vec2 = new_vec::<c64>(&index_layout);
+        let mut vec1 = new_vec::<c64>(VEC_SIZE);
+        let mut vec2 = new_vec::<c64>(VEC_SIZE);
 
         let mut vec1_view = vec1.view_mut().unwrap();
         let mut vec2_view = vec2.view_mut().unwrap();
@@ -423,7 +431,7 @@ mod tests {
     fn scalar_mult() {
         let index_layout = index_layout();
 
-        let mut vec = new_vec::<c64>(&index_layout);
+        let mut vec = new_vec::<c64>(VEC_SIZE);
 
         let val1 = c64::new(1.0, 2.0);
         let val2 = c64::new(1.5, 3.0);

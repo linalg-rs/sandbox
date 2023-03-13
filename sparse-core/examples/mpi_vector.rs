@@ -3,7 +3,6 @@
 use mpi::traits::*;
 use sparse_core::distributed::index_layout::DistributedIndexLayout;
 use sparse_core::distributed::indexable_space::DistributedIndexableVectorSpace;
-use sparse_core::local::index_layout::LocalIndexLayout;
 use sparse_core::local::indexable_vector::LocalIndexableVector;
 use sparse_traits::linalg::*;
 use sparse_traits::Element;
@@ -17,18 +16,16 @@ fn main() {
     let n = 100;
 
     // We first create an index layout.
-    let index_layout = DistributedIndexLayout::new((0, n), &world);
+    let index_layout = DistributedIndexLayout::new(n, &world);
     let space = DistributedIndexableVectorSpace::<'_, f64, _>::new(&index_layout);
     let mut vec = space.create_element();
 
     let vec_impl = vec.view_mut();
 
-    let mut local_vec: LocalIndexableVector<'_, f64>;
+    let mut local_vec: LocalIndexableVector<f64>;
 
     if rank == 0 {
-        let local_layout = LocalIndexLayout::new((0, n));
-
-        local_vec = LocalIndexableVector::<'_, f64>::new(&local_layout);
+        local_vec = LocalIndexableVector::<f64>::new(n);
         let mut view = local_vec.view_mut().unwrap();
 
         for index in 0..n {

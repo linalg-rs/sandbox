@@ -22,6 +22,8 @@ pub enum SparseLinAlgError {
     },
     #[error("Index Layout error: {0}")]
     IndexLayoutError(String),
+    #[error("MPI Rank does not exist. {0}")]
+    MpiRankError(i32),
 }
 
 pub type SparseLinAlgResult<T> = std::result::Result<T, SparseLinAlgError>;

@@ -3,11 +3,7 @@
 use crate::local::sparse::SparseMatType;
 use sparse_traits::types::SparseLinAlgResult;
 
-use sparse_traits::{
-    linalg::IndexableVectorView,
-    linalg::IndexableVectorViewMut,
-    types::{IndexType, Scalar},
-};
+use sparse_traits::types::{IndexType, Scalar};
 
 pub struct CsrMatrix<T: Scalar> {
     mat_type: SparseMatType,
@@ -53,13 +49,7 @@ impl<T: Scalar> CsrMatrix<T> {
         &self.data
     }
 
-    pub fn matmul<V: IndexableVectorView<T = T>, VM: IndexableVectorViewMut<T = T>>(
-        &self,
-        alpha: T,
-        x: &V,
-        beta: T,
-        y: &mut VM,
-    ) {
+    pub fn matmul(&self, alpha: T, x: &[T], beta: T, y: &mut [T]) {
         for (row, out) in y.iter_mut().enumerate() {
             *out = beta * *out
                 + alpha * {
@@ -115,11 +105,6 @@ impl<T: Scalar> CsrMatrix<T> {
 #[cfg(test)]
 mod test {
 
-    use sparse_traits::linalg::IndexableVector;
-
-    use crate::local::index_layout::LocalIndexLayout;
-    use crate::local::indexable_vector::LocalIndexableVector;
-
     use super::*;
 
     #[test]
@@ -160,20 +145,12 @@ mod test {
         // Execute 2 * [1, 2] + 3 * A*x with x = [3, 4];
         // Expected result is [35, 79].
 
-        let index_layout = LocalIndexLayout::new((0, 2));
-        let mut res = LocalIndexableVector::<f64>::new(&index_layout);
+        let x = vec![3.0, 4.0];
+        let mut res = vec![1.0, 2.0];
 
-        let mut x = LocalIndexableVector::<f64>::new(&index_layout);
+        csr.matmul(3.0, &x, 2.0, &mut res);
 
-        *x.view_mut().unwrap().get_mut(0).unwrap() = 3.0;
-        *x.view_mut().unwrap().get_mut(1).unwrap() = 4.0;
-
-        *res.view_mut().unwrap().get_mut(0).unwrap() = 1.0;
-        *res.view_mut().unwrap().get_mut(1).unwrap() = 2.0;
-
-        csr.matmul(3.0, &x.view().unwrap(), 2.0, &mut res.view_mut().unwrap());
-
-        assert_eq!(*res.view().unwrap().get(0).unwrap(), 35.0);
-        assert_eq!(*res.view().unwrap().get(1).unwrap(), 79.0);
+        assert_eq!(res[0], 35.0);
+        assert_eq!(res[1], 79.0);
     }
 }
