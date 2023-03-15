@@ -247,18 +247,12 @@ mod tests {
 
     const VEC_SIZE: IndexType = 2;
 
-    fn index_layout() -> LocalIndexLayout {
-        LocalIndexLayout::new(VEC_SIZE)
-    }
-
     fn new_vec<T: Scalar>(size: IndexType) -> LocalIndexableVector<T> {
         LocalIndexableVector::<T>::new(size)
     }
 
     #[test]
     fn test_inner() {
-        let index_layout = index_layout();
-
         let mut vec1 = new_vec::<c64>(VEC_SIZE);
         let mut vec2 = new_vec::<c64>(VEC_SIZE);
 
@@ -281,8 +275,6 @@ mod tests {
 
     #[test]
     fn abs_square_sum() {
-        let index_layout = index_layout();
-
         let mut vec = new_vec::<c64>(VEC_SIZE);
 
         let mut vec_view = vec.view_mut().unwrap();
@@ -301,8 +293,6 @@ mod tests {
 
     #[test]
     fn norm_1() {
-        let index_layout = index_layout();
-
         let mut vec = new_vec::<c64>(VEC_SIZE);
 
         let val1 = c64::new(1.0, 2.0);
@@ -319,8 +309,6 @@ mod tests {
 
     #[test]
     fn norm_2() {
-        let index_layout = index_layout();
-
         let mut vec = new_vec::<c64>(VEC_SIZE);
 
         let val1 = c64::new(1.0, 2.0);
@@ -337,8 +325,6 @@ mod tests {
 
     #[test]
     fn norm_inf() {
-        let index_layout = index_layout();
-
         let mut vec = new_vec::<c64>(VEC_SIZE);
 
         let val1 = c64::new(1.0, 2.0);
@@ -355,8 +341,6 @@ mod tests {
 
     #[test]
     fn swap() {
-        let index_layout = index_layout();
-
         let mut vec1 = new_vec::<c64>(VEC_SIZE);
         let mut vec2 = new_vec::<c64>(VEC_SIZE);
 
@@ -377,8 +361,6 @@ mod tests {
 
     #[test]
     fn mult_sum_into() {
-        let index_layout = index_layout();
-
         let mut vec1 = new_vec::<c64>(VEC_SIZE);
         let mut vec2 = new_vec::<c64>(VEC_SIZE);
 
@@ -429,8 +411,6 @@ mod tests {
     }
     #[test]
     fn scalar_mult() {
-        let index_layout = index_layout();
-
         let mut vec = new_vec::<c64>(VEC_SIZE);
 
         let val1 = c64::new(1.0, 2.0);

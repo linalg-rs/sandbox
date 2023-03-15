@@ -7,7 +7,7 @@ use mpi::traits::*;
 use num::{Float, Zero};
 use sparse_traits::linalg::*;
 use sparse_traits::linalg::{Inner, Norm1, Norm2, NormInfty};
-use sparse_traits::types::{IndexType, SparseLinAlgError, SparseLinAlgResult};
+use sparse_traits::types::SparseLinAlgResult;
 use sparse_traits::{linalg::IndexableVectorView, IndexLayout, Scalar};
 
 use super::index_layout::DistributedIndexLayout;
@@ -103,7 +103,7 @@ impl<'a, T: Scalar + Equivalence, C: Communicator> IndexableVector
 
 impl<T: Scalar + Equivalence, C: Communicator> Inner for DistributedIndexableVector<'_, T, C> {
     fn inner(&self, other: &Self) -> SparseLinAlgResult<Self::T> {
-        let mut result = T::zero();
+        let result;
 
         if let Ok(local_result) = self.local.inner(&other.local()) {
             result = local_result;

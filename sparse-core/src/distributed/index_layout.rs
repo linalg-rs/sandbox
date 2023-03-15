@@ -1,6 +1,4 @@
-use crate::local::index_layout::LocalIndexLayout;
 use mpi::traits::Communicator;
-use mpi::Count;
 use sparse_traits::{IndexLayout, IndexType, SparseLinAlgResult};
 
 pub struct DistributedIndexLayout<'a, C: Communicator> {
