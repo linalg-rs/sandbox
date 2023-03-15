@@ -4,9 +4,9 @@ use std::marker::PhantomData;
 
 use super::index_layout::LocalIndexLayout;
 use super::indexable_vector::LocalIndexableVector;
+use sparse_traits::linalg::{Inner, Norm2};
 use sparse_traits::types::{IndexType, Scalar};
 use sparse_traits::{Element, IndexLayout, IndexableSpace, InnerProductSpace, NormedSpace};
-use sparse_traits::linalg::{Inner, Norm2};
 
 pub struct LocalIndexableVectorSpace<T: Scalar> {
     index_layout: LocalIndexLayout,
@@ -16,7 +16,7 @@ pub struct LocalIndexableVectorSpace<T: Scalar> {
 impl<T: Scalar> LocalIndexableVectorSpace<T> {
     pub fn new(n: IndexType) -> Self {
         LocalIndexableVectorSpace {
-            index_layout: LocalIndexLayout::new((0, n)),
+            index_layout: LocalIndexLayout::new(n),
             _phantom: PhantomData,
         }
     }
@@ -24,13 +24,13 @@ impl<T: Scalar> LocalIndexableVectorSpace<T> {
 
 pub struct LocalIndexableVectorSpaceElement<'a, T: Scalar> {
     space: &'a LocalIndexableVectorSpace<T>,
-    data: super::indexable_vector::LocalIndexableVector<'a, T>,
+    data: super::indexable_vector::LocalIndexableVector<T>,
 }
 
 impl<'a, T: Scalar> Element for LocalIndexableVectorSpaceElement<'a, T> {
     type Space = LocalIndexableVectorSpace<T>;
-    type View<'b> = &'b super::indexable_vector::LocalIndexableVector<'b, T> where Self: 'b;
-    type ViewMut<'b> = &'b mut super::indexable_vector::LocalIndexableVector<'a, T> where Self: 'b;
+    type View<'b> = &'b super::indexable_vector::LocalIndexableVector<T> where Self: 'b;
+    type ViewMut<'b> = &'b mut super::indexable_vector::LocalIndexableVector<T> where Self: 'b;
 
     fn space(&self) -> &Self::Space {
         self.space
@@ -52,10 +52,9 @@ impl<T: Scalar> sparse_traits::LinearSpace for LocalIndexableVectorSpace<T> {
     fn create_element<'a>(&'a self) -> Self::E<'a> {
         LocalIndexableVectorSpaceElement {
             space: &self,
-            data: LocalIndexableVector::new(&self.index_layout),
+            data: LocalIndexableVector::new(self.index_layout().number_of_global_indices()),
         }
     }
-
 }
 
 impl<T: Scalar> IndexableSpace for LocalIndexableVectorSpace<T> {
@@ -74,14 +73,16 @@ impl<T: Scalar> InnerProductSpace for LocalIndexableVectorSpace<T> {
         &self,
         x: &sparse_traits::ElementView<'a, Self>,
         other: &sparse_traits::ElementView<'a, Self>,
-    ) -> sparse_traits::SparseLinAlgResult<Self::F> where Self: 'a{
+    ) -> sparse_traits::SparseLinAlgResult<Self::F>
+    where
+        Self: 'a,
+    {
         x.inner(other)
     }
 }
 
-
 impl<T: Scalar> NormedSpace for LocalIndexableVectorSpace<T> {
-   fn norm<'a>(&'a self, x: &sparse_traits::ElementView<'a, Self>) -> <Self::F as Scalar>::Real {
-      x.norm_2() 
-   } 
+    fn norm<'a>(&'a self, x: &sparse_traits::ElementView<'a, Self>) -> <Self::F as Scalar>::Real {
+        x.norm_2()
+    }
 }

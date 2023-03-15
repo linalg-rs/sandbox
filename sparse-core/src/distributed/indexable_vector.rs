@@ -7,35 +7,44 @@ use mpi::traits::*;
 use num::{Float, Zero};
 use sparse_traits::linalg::*;
 use sparse_traits::linalg::{Inner, Norm1, Norm2, NormInfty};
-use sparse_traits::types::{SparseLinAlgError, SparseLinAlgResult};
+use sparse_traits::types::SparseLinAlgResult;
 use sparse_traits::{linalg::IndexableVectorView, IndexLayout, Scalar};
 
 use super::index_layout::DistributedIndexLayout;
 
 pub struct DistributedIndexableVector<'a, T: Scalar + Equivalence, C: Communicator> {
     index_layout: &'a DistributedIndexLayout<'a, C>,
-    local: Option<LocalIndexableVector<'a, T>>,
+    local: LocalIndexableVector<T>,
 }
 
 impl<'a, T: Scalar + Equivalence, C: Communicator> DistributedIndexableVector<'a, T, C> {
     pub fn new(index_layout: &'a DistributedIndexLayout<'a, C>) -> Self {
         DistributedIndexableVector {
             index_layout,
-            local: match index_layout.local_layout() {
-                Some(layout) => Some(LocalIndexableVector::new(layout)),
-                None => None,
-            },
+            local: LocalIndexableVector::new(index_layout.number_of_local_indices()),
         }
     }
-
-    fn local(&self) -> Option<&LocalIndexableVector<'a, T>> {
-        self.local.as_ref()
+    fn local(&self) -> &LocalIndexableVector<T> {
+        &self.local
     }
 
-    pub fn fill_from_root(&mut self, other: &Option<LocalIndexableVector<T>>) -> SparseLinAlgResult<()> {
+    pub fn fill_from_root(
+        &mut self,
+        other: &Option<LocalIndexableVector<T>>,
+    ) -> SparseLinAlgResult<()> {
         let comm = self.index_layout().comm().duplicate();
-        let counts = self.index_layout().counts().as_slice();
-        let displacements = self.index_layout().displacements().as_slice();
+        let counts: Vec<i32> = (0..comm.size())
+            .map(|index| {
+                let index_range = self.index_layout.index_range(index as usize).unwrap();
+                (index_range.1 - index_range.0) as i32
+            })
+            .collect();
+        let displacements: Vec<i32> = (0..comm.size())
+            .map(|index| {
+                let index_range = self.index_layout.index_range(index as usize).unwrap();
+                index_range.0 as i32
+            })
+            .collect();
         let global_dim = self.index_layout().number_of_global_indices();
         let mut recvbuf = vec![T::zero(); self.index_layout().number_of_local_indices()];
 
@@ -58,11 +67,9 @@ impl<'a, T: Scalar + Equivalence, C: Communicator> DistributedIndexableVector<'a
             let partition = Partition::new(data, counts, displacements);
 
             root_process.scatter_varcount_into_root(&partition, &mut recvbuf);
-
         } else {
             assert!(other.is_none(), "`other` has a `Some` value.");
             root_process.scatter_varcount_into(&mut recvbuf);
-
         }
 
         if let Some(mut view) = self.view_mut() {
@@ -86,40 +93,32 @@ impl<'a, T: Scalar + Equivalence, C: Communicator> IndexableVector
     }
 
     fn view<'b>(&'b self) -> Option<Self::View<'b>> {
-        match &self.local {
-            Some(local_vec) => Some(local_vec.view().unwrap()),
-            None => None,
-        }
+        Some(self.local.view().unwrap())
     }
 
     fn view_mut<'b>(&'b mut self) -> Option<Self::ViewMut<'b>> {
-        match &mut self.local {
-            Some(local_vec) => Some(local_vec.view_mut().unwrap()),
-            None => None,
-        }
+        Some(self.local.view_mut().unwrap())
     }
 }
 
 impl<T: Scalar + Equivalence, C: Communicator> Inner for DistributedIndexableVector<'_, T, C> {
-    type T = T;
     fn inner(&self, other: &Self) -> SparseLinAlgResult<Self::T> {
-        if !self.index_layout().is_same(other.index_layout()) {
-            return Err(SparseLinAlgError::IndexLayoutError(
-                "Vectors in `inner` must reference the same index layout".to_string(),
-            ));
-        }
+        let result;
 
-        let mut local_result = T::zero();
-
-        if let Some(local) = self.local() {
-            local_result = local.inner(&other.local().unwrap()).unwrap();
+        if let Ok(local_result) = self.local.inner(&other.local()) {
+            result = local_result;
+        } else {
+            panic!(
+                "Could not perform local inner product on process {}",
+                self.index_layout().comm().rank()
+            );
         }
 
         let comm = self.index_layout.comm();
 
         let mut global_result = T::zero();
         comm.all_reduce_into(
-            &local_result,
+            &result,
             &mut global_result,
             mpi::collective::SystemOperation::sum(),
         );
@@ -131,15 +130,10 @@ impl<T: Scalar + Equivalence, C: Communicator> AbsSquareSum for DistributedIndex
 where
     T::Real: Equivalence,
 {
-    type T = T;
     fn abs_square_sum(&self) -> <Self::T as Scalar>::Real {
         let comm = self.index_layout.comm();
 
-        let mut local_result = <<Self::T as Scalar>::Real>::zero();
-
-        if let Some(local) = self.local() {
-            local_result = local.abs_square_sum();
-        }
+        let local_result = self.local.abs_square_sum();
 
         let mut global_result = <<Self::T as Scalar>::Real>::zero();
         comm.all_reduce_into(
@@ -155,15 +149,10 @@ impl<T: Scalar + Equivalence, C: Communicator> Norm1 for DistributedIndexableVec
 where
     T::Real: Equivalence,
 {
-    type T = T;
     fn norm_1(&self) -> <Self::T as Scalar>::Real {
         let comm = self.index_layout.comm();
 
-        let mut local_result = <<Self::T as Scalar>::Real>::zero();
-
-        if let Some(local) = self.local() {
-            local_result = local.norm_1();
-        }
+        let local_result = self.local.norm_1();
 
         let mut global_result = <<Self::T as Scalar>::Real as Zero>::zero();
         comm.all_reduce_into(
@@ -179,7 +168,6 @@ impl<T: Scalar + Equivalence, C: Communicator> Norm2 for DistributedIndexableVec
 where
     T::Real: Equivalence,
 {
-    type T = T;
     fn norm_2(&self) -> <Self::T as Scalar>::Real {
         Float::sqrt(self.abs_square_sum())
     }
@@ -189,15 +177,10 @@ impl<T: Scalar + Equivalence, C: Communicator> NormInfty for DistributedIndexabl
 where
     T::Real: Equivalence,
 {
-    type T = T;
     fn norm_infty(&self) -> <Self::T as Scalar>::Real {
         let comm = self.index_layout.comm();
 
-        let mut local_result = <<Self::T as Scalar>::Real>::zero();
-
-        if let Some(local) = self.local() {
-            local_result = local.norm_infty();
-        }
+        let local_result = self.local.norm_infty();
 
         let mut global_result = <<Self::T as Scalar>::Real as Zero>::zero();
         comm.all_reduce_into(
